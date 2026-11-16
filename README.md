@@ -145,6 +145,8 @@ npm run audit:public
 
 Para desarrollo web, usa una base PostgreSQL aislada y variables `DATABASE_URL`, `AUTH_ENCRYPTION_KEY` y `UPLOAD_DIR`; `npm run dev` inicia Next.js. No conectes a producción. La instalación Docker es la opción reproducible recomendada.
 
+La suite actual incluye **140 pruebas automatizadas**. Se han comprobado también el primer inicio sobre una base PostgreSQL vacía, el cambio de contraseña, la carga de datos ficticios y la generación del documento de presupuesto. [Alcance de las comprobaciones](docs/VALIDATION.md).
+
 La integración continua ejecuta revisión de archivos publicables, tipos, pruebas unitarias y compilación. Las pruebas `.integration.mjs` heredadas necesitan su infraestructura desechable específica; no forman parte de `npm test` ni deben ejecutarse contra una base con datos reales.
 
 ## Aplicaciones
