@@ -50,7 +50,18 @@ const boot = execFileSync(
   { encoding: 'utf8' },
 );
 const temp = boot.match(/Contraseña temporal: (.+)/)[1];
-let a = await auth('', { action: 'login', username: 'alex', password: temp });
+// This suite starts with an administrator; the public demo bootstraps a developer.
+// Only downgrade its disposable fixture, never an existing installation.
+execFileSync('docker', ['exec', 'nexo-auth-check', 'node', '--input-type=module', '-e', `
+import pg from 'pg';
+if (!process.env.DATABASE_URL.endsWith('/crm_auth_check')) throw Error('Not a disposable database');
+const db = new pg.Client({connectionString:process.env.DATABASE_URL});
+await db.connect();
+await db.query("UPDATE app_users SET role='admin' WHERE username='developer'");
+await db.query("UPDATE crm_memberships SET role='admin' WHERE user_id IN (SELECT id FROM app_users WHERE username='developer')");
+await db.end();
+`]);
+let a = await auth('', { action: 'login', username: 'developer', password: temp });
 assert.equal(a.status, 200);
 assert.match(a.headers.get('set-cookie'), /HttpOnly/i);
 assert.match(a.headers.get('set-cookie'), /SameSite=strict/i);
@@ -131,7 +142,7 @@ assert.equal(audited.status, 200, JSON.stringify(audited.data));
 const history = await call('/api/work-history?workId=work', { cookie: a.cookie });
 assert.equal(history.status, 200);
 assert.equal(history.data.events[0].action, 'Corrección');
-assert.equal(history.data.events[0].actor_name, 'alex');
+assert.equal(history.data.events[0].actor_name, 'developer');
 assert.equal(history.data.events[0].before_value.hours, 2);
 assert.equal(history.data.events[0].after_value.hours, 3);
 assert.equal(history.data.events[0].reason, 'Corrección de la visita');
@@ -204,7 +215,7 @@ execFileSync('docker', [
   '-d',
   'crm_auth_check',
   '-c',
-  "UPDATE app_users SET role='developer' WHERE username='alex'",
+  "UPDATE app_users SET role='developer' WHERE username='developer'",
 ]);
 assert.equal(
   (
@@ -244,7 +255,7 @@ execFileSync('docker', [
   '-d',
   'crm_auth_check',
   '-c',
-  "UPDATE app_users SET role='admin' WHERE username='alex'",
+  "UPDATE app_users SET role='admin' WHERE username='developer'",
 ]);
 const catalogue = await call('/api/products', { cookie: a.cookie });
 assert.equal(catalogue.status, 200);
@@ -685,14 +696,14 @@ const codes = sec.data.codes;
 assert.equal(codes.length, 10);
 a.cookie = sec.cookie;
 assert.equal((await call('/api/data', { cookie: firstCookie })).status, 401);
-const challenge = await auth('', { action: 'login', username: 'alex', password });
+const challenge = await auth('', { action: 'login', username: 'developer', password });
 assert.equal(challenge.data.requiresCode, true);
 assert.equal(challenge.cookie, '');
-assert.equal((await auth('', { action: 'login', username: 'alex', password, code })).status, 401);
-let recovered = await auth('', { action: 'login', username: 'alex', password, code: codes[0] });
+assert.equal((await auth('', { action: 'login', username: 'developer', password, code })).status, 401);
+let recovered = await auth('', { action: 'login', username: 'developer', password, code: codes[0] });
 assert.equal(recovered.status, 200, JSON.stringify(recovered.data));
 assert.equal(
-  (await auth('', { action: 'login', username: 'alex', password, code: codes[0] })).status,
+  (await auth('', { action: 'login', username: 'developer', password, code: codes[0] })).status,
   401,
 );
 assert.equal((await call('/api/security', { cookie: recovered.cookie })).data.remaining, 9);
@@ -715,7 +726,7 @@ execFileSync('docker', [
   "import pg from 'pg';const c=new pg.Client({connectionString:process.env.DATABASE_URL});await c.connect();await c.query(\"UPDATE app_sessions SET last_seen=now()-interval '121 minutes'\");await c.end();",
 ]);
 assert.equal((await call('/api/data', { cookie: recovered.cookie })).status, 401);
-a = await auth('', { action: 'login', username: 'alex', password, code: codes[1] });
+a = await auth('', { action: 'login', username: 'developer', password, code: codes[1] });
 assert.equal(a.status, 200);
 let disabled = await call('/api/security', {
   cookie: a.cookie,
@@ -780,7 +791,7 @@ execFileSync('docker', [
   'node',
   '--input-type=module',
   '-e',
-  "import pg from 'pg';const c=new pg.Client({connectionString:process.env.DATABASE_URL});await c.connect();await c.query(\"UPDATE app_users SET role='developer' WHERE username='alex'\");await c.end();",
+  "import pg from 'pg';const c=new pg.Client({connectionString:process.env.DATABASE_URL});await c.connect();await c.query(\"UPDATE app_users SET role='developer' WHERE username='developer'\");await c.end();",
 ]);
 assert.equal((await call('/api/diagnostics', { cookie: a.cookie })).status, 200);
 let acceptedState = (await call('/api/data', { cookie: a.cookie })).data;
@@ -1078,7 +1089,7 @@ console.log('PASS: resultado y siguiente actividad guardados juntos; resultado i
   const deletionCookie = await create('delete.account.test', 'commercial', 'delete.account.test');
   const accounts = (await call('/api/users', { cookie: a.cookie })).data.users;
   const target = accounts.find((x) => x.username === 'delete.account.test');
-  const developer = accounts.find((x) => x.username === 'alex');
+  const developer = accounts.find((x) => x.username === 'developer');
   const owner = accounts.find((x) => x.profile === 'Alex' && x.role === 'commercial');
   assert.equal(
     (
