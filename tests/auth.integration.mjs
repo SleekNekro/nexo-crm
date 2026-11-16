@@ -250,8 +250,8 @@ const catalogue = await call('/api/products', { cookie: a.cookie });
 assert.equal(catalogue.status, 200);
 assert.equal(catalogue.data.products.length, 6);
 assert.equal(new Set(catalogue.data.products.map((p) => p.code)).size, 6);
-assert.equal(catalogue.data.products.filter((p) => !p.active).length, 24);
-assert.equal(catalogue.data.products.find((p) => p.code === '01009Xxxx').price, 12);
+assert.equal(catalogue.data.products.filter((p) => !p.active).length, 0);
+assert.equal(catalogue.data.products.find((p) => p.code === 'DEMO-004').price, 12);
 const wc = await create('test.worker', 'worker', 'operario:wa'),
   bc = await create('test.other', 'worker', 'operario:wb'),
   cc = initialCommercialCookie;
