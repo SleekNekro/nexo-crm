@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.tools
+.env*
+backups
+.storage
+storage
+work
+apps
+*.tsbuildinfo

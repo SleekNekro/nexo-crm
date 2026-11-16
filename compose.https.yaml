@@ -1,0 +1,21 @@
+# Optional LAN HTTPS layer. Use together with compose.yaml and .env.mac.
+services:
+  app:
+    environment:
+      COOKIE_SECURE: 'true'
+  https:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    environment:
+      CRM_HTTPS_HOST: ${CRM_HTTPS_HOST:?Indica el nombre o IP del servidor}
+    ports:
+      - '${HTTPS_BIND_ADDRESS:-0.0.0.0}:8443:8443'
+    volumes:
+      - ./apps/server/Caddyfile:/etc/caddy/Caddyfile:ro
+      - crm_tls:/data
+      - crm_tls_config:/config
+    depends_on:
+      - gateway
+volumes:
+  crm_tls:
+  crm_tls_config:

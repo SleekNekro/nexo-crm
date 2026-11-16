@@ -1,0 +1,4 @@
+https://{$CRM_HTTPS_HOST}:8443 {
+    tls internal
+    reverse_proxy gateway:8080
+}

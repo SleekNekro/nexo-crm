@@ -1,0 +1,1 @@
+export const memberDirectory = `SELECT u.id,u.username,COALESCE(NULLIF(u.display_name,''),u.username) AS display_name,m.role,m.profile,m.permissions,(u.active AND (u.role='developer' OR m.active)) AS active,u.must_change,m.external,m.access_until,m.work_scope FROM public.crm_memberships m JOIN public.app_users u ON u.id=m.user_id WHERE m.workspace_id=$1`;

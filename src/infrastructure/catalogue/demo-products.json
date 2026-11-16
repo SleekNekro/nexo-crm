@@ -1,0 +1,50 @@
+[
+  {
+    "code": "DEMO-001",
+    "name": "Revestimiento mate · envase 5 kg",
+    "family": "Acabados",
+    "price": 45,
+    "description": "Producto ficticio para demostración",
+    "active": true
+  },
+  {
+    "code": "DEMO-002",
+    "name": "Imprimación · envase 1 L",
+    "family": "Preparación",
+    "price": 18,
+    "description": "Producto ficticio para demostración",
+    "active": true
+  },
+  {
+    "code": "DEMO-003",
+    "name": "Sellador · envase 1 L",
+    "family": "Protección",
+    "price": 27,
+    "description": "Producto ficticio para demostración",
+    "active": true
+  },
+  {
+    "code": "DEMO-004",
+    "name": "Kit de muestras",
+    "family": "Muestras",
+    "price": 12,
+    "description": "Producto ficticio para demostración",
+    "active": true
+  },
+  {
+    "code": "DEMO-005",
+    "name": "Aplicación de acabado · m²",
+    "family": "Servicios",
+    "price": 32,
+    "description": "Producto ficticio para demostración",
+    "active": true
+  },
+  {
+    "code": "DEMO-006",
+    "name": "Preparación de superficie · m²",
+    "family": "Servicios",
+    "price": 9,
+    "description": "Producto ficticio para demostración",
+    "active": true
+  }
+]

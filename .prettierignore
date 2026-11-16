@@ -1,0 +1,11 @@
+node_modules
+.next
+.env
+backups
+.storage
+work
+*.tsbuildinfo
+package-lock.json
+next-env.d.ts
+acceso*.txt
+public

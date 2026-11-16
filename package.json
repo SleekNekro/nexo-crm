@@ -1,0 +1,35 @@
+{
+  "name": "nexo-crm",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start --hostname 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "format": "prettier --write app src tests scripts *.json *.ts *.yaml README.md ARCHITECTURE.md",
+    "format:check": "prettier --check app src tests scripts *.json *.ts *.yaml README.md ARCHITECTURE.md",
+    "audit:public": "node scripts/audit-public.mjs"
+  },
+  "dependencies": {
+    "heic-to": "1.6.7",
+    "lucide-react": "^0.468.0",
+    "next": "^16.0.0",
+    "pg": "^8.16.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.11.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "prettier": "3.10.0",
+    "typescript": "^5.7.0"
+  },
+  "type": "module",
+  "description": "CRM comercial y control de proyectos \u2014 demostraci\u00f3n full stack",
+  "license": "MIT",
+  "author": "SleekNekro"
+}
