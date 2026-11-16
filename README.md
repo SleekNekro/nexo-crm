@@ -1,6 +1,6 @@
 # Nexo CRM
 
-CRM comercial y control de proyectos con interfaz web adaptable, API propia y clientes de escritorio y Android. Proyecto de portfolio de [SleekNekro](https://github.com/SleekNekro).
+CRM open source orientado a pymes, con gestión comercial y seguimiento de proyectos. Su objetivo es adaptarse a distintos negocios manteniendo una experiencia sencilla. Incluye interfaz web adaptable, API propia y código fuente de clientes de escritorio y Android. Proyecto de portfolio de [SleekNekro](https://github.com/SleekNekro).
 
 **100 % open source · Licencia MIT · Sin licencia comercial obligatoria**
 
@@ -17,6 +17,14 @@ No necesitas una suscripción a Nexo ni un servicio de pago del autor. El alojam
 ![Panel de Nexo CRM con datos ficticios](docs/screenshots/dashboard.jpg)
 
 Nexo es una edición independiente de demostración: identidad ficticia, seis productos de ejemplo y datos comerciales sintéticos. No contiene información ni documentos de clientes reales. No es un servicio público alojado ni un producto con auditoría de seguridad externa.
+
+## Para qué negocios está pensado
+
+**La muestra está basada en una empresa ficticia del sector de la construcción y los revestimientos.** Por eso aparecen obras, partidas, mediciones, operarios y presupuestos de materiales. Es el caso de uso con el que se desarrolla y demuestra la aplicación.
+
+La visión de Nexo es ser **configurable para pymes de cualquier sector**, por ejemplo servicios, distribución, talleres o pequeñas empresas comerciales. La prioridad es mantener la sencillez: pocos pasos, pantallas comprensibles y solo las secciones necesarias para cada negocio, también para personas con poca experiencia digital.
+
+**Hoy no es una solución universal configurable sin código.** El CRM comercial ya ofrece funciones comunes a distintos negocios; adaptar terminología, reglas o secciones específicas todavía puede requerir desarrollo. La evolución modular descrita a continuación busca facilitar esa adaptación desde la propia interfaz.
 
 ## Próxima evolución: configuración modular sin escribir código
 
@@ -103,6 +111,9 @@ No apuntes esta demostración a una base de datos empresarial. Antes de abrirla 
 
 ## Arquitectura
 
+El diagrama muestra el servidor y los clientes cuyo código se incluye. **No significa que el ZIP del repositorio contenga aplicaciones listas para instalar**. El backend y PostgreSQL se ejecutan en un ordenador o servidor; Android, escritorio y PWA se conectan a él.
+
+
 ```mermaid
 flowchart LR
     A[Web / PWA] --> G[Pasarela HTTP]
@@ -151,7 +162,18 @@ La integración continua ejecuta revisión de archivos publicables, tipos, prueb
 
 ## Aplicaciones
 
-El código de los clientes está en `apps/`. Son interfaces conectadas al mismo servidor; no son aplicaciones sin conexión. Esta edición pública no distribuye binarios firmados. [Compilación y limitaciones](apps/README.md).
+El código de los clientes está en `apps/`. Todos necesitan un servidor Nexo funcionando y accesible; no son aplicaciones sin conexión ni incluyen la base de datos.
+
+| Plataforma | Qué se entrega hoy | Cómo se usa |
+|---|---|---|
+| Web | Aplicación y backend | Arrancar el servidor y abrir su dirección en el navegador. |
+| Android 8 o posterior | Proyecto Java/WebView | Compilar un APK con la dirección de tu servidor e instalarlo. No hay APK listo para descargar. |
+| macOS / Windows | Proyecto Tauri 2 | Compilar en la plataforma correspondiente y configurar el servidor. No se incluyen instaladores de esta edición. |
+| iPhone | Web con manifiesto PWA | Servirla con HTTPS de confianza y añadirla a inicio desde Safari. No se incluye una app de App Store. |
+
+**¿Puedo ejecutarlo en Android al descargar el repositorio?** Puedes construir el cliente Android y conectarlo a tu instalación. Descargar el ZIP o instalar el cliente no arranca el CRM completo en el teléfono. Para probarlo hay una guía por USB; para distribuirlo necesitas preparar un APK firmado y un servidor accesible mediante HTTPS.
+
+[Guía de compilación, prueba en Android y limitaciones](apps/README.md).
 
 ## Autoría y aprendizaje
 

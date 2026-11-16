@@ -2,7 +2,7 @@
 
 ## Experiencia para personas sin perfil técnico
 
-Preparar una versión con secciones modulares que se puedan añadir y configurar desde la interfaz sin escribir código. Es una funcionalidad futura: no hay constructor, catálogo de módulos ni fecha comprometida en esta entrega. Se definirá con las necesidades y aportaciones de la comunidad.
+Orientar Nexo a pymes de distintos sectores, usando la construcción como caso de demostración inicial y manteniendo pocos pasos y pantallas comprensibles. Preparar una versión con secciones modulares que se puedan añadir y configurar desde la interfaz sin escribir código. Es una funcionalidad futura: no hay constructor, catálogo de módulos ni fecha comprometida en esta entrega. Se definirá con las necesidades y aportaciones de la comunidad.
 
 ## Consolidación técnica
 

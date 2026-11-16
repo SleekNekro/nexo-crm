@@ -1,5 +1,11 @@
 # Arquitectura de Nexo CRM
 
+## Contexto y objetivo
+
+Nexo está orientado a pymes y busca adaptarse a distintos negocios manteniendo una interfaz sencilla. La demostración actual modela una empresa ficticia de construcción/revestimientos: las obras, mediciones y partes responden a ese ejemplo y no son requisitos de todos los sectores.
+
+Las funciones comerciales constituyen una base reutilizable. Las reglas y secciones específicas todavía se adaptan mediante código. El constructor de secciones modulares sin código es una evolución prevista, no una arquitectura de plugins ya disponible.
+
 ## Capas
 
 - `src/domain`: modelos, cálculos, transiciones comerciales, permisos y reglas de partes/obras. Funciones comprobables sin interfaz.
@@ -27,6 +33,8 @@ Las revisiones conservan una instantánea para que un PDF histórico no cambie p
 ## Sesiones y conexión
 
 Las contraseñas se derivan con scrypt y sal individual. El servidor almacena hashes de tokens de sesión, limita intentos y soporta TOTP. Los secretos TOTP se cifran usando la clave de la instalación.
+
+El repositorio entrega código fuente de los clientes, no instaladores. En Android se compila un APK indicando la dirección del servidor; el backend y PostgreSQL se ejecutan fuera del teléfono.
 
 Los clientes nativos cargan la web del servidor y restringen la navegación. La impresión del documento utiliza el diálogo nativo cuando corresponde. No hay base de datos embebida ni sincronización offline.
 
