@@ -1,9 +1,13 @@
 'use client';
 import { useState } from 'react';
+import { Mail } from 'lucide-react';
+import MailSettings from './mail-settings';
+import { canAct } from '../../domain/permissions';
 import type { Identity } from '../../application/access';
 import { FormDialog } from './dialog';
 import SecuritySettings from './security-settings';
 export default function Accounts({ user, onClose }: { user: Identity; onClose: () => void }) {
+  const [mailOpen, setMailOpen] = useState(false);
   const [error, setError] = useState(''),
     [notice, setNotice] = useState(''),
     [busy, setBusy] = useState(false);
@@ -32,6 +36,18 @@ export default function Accounts({ user, onClose }: { user: Identity; onClose: (
     <FormDialog title="Mi cuenta" onClose={onClose}>
       <button onClick={onClose}>Cerrar</button>
       <h2>Mi cuenta · {user.username}</h2>
+      {canAct(user, 'deals') && (
+        <button className="primary icon-action" type="button" onClick={() => setMailOpen(true)}>
+          <Mail size={18} aria-hidden="true" /> Configurar mi correo
+        </button>
+      )}
+      {mailOpen && (
+        <MailSettings
+          displayName={user.displayName || user.username}
+          onClose={() => setMailOpen(false)}
+        />
+      )}
+
       {error && (
         <p className="error" role="alert">
           {error}

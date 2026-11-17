@@ -126,3 +126,13 @@ Nexo es **totalmente open source bajo licencia MIT**. Te animo a hacer un fork, 
 No necesitas una suscripción a Nexo. El alojamiento y las herramientas externas que elijas pueden tener sus propios costes y licencias.
 
 [Hoja de ruta](docs/ROADMAP.md) · [Caso de estudio y portfolio](docs/PORTFOLIO.md) · [Licencia MIT](LICENSE) · [Componentes de terceros](THIRD_PARTY_NOTICES.md)
+
+### Configurar correo
+
+En **Mi cuenta → Configurar mi correo**, elige proveedor, introduce tu dirección y contraseña y pulsa **Guardar y comprobar**. Incluye IONOS España, Gmail/Google Workspace, iCloud, Yahoo y Microsoft 365 con SMTP autorizado; también admite servidores manuales. Nombre, firma y ajustes técnicos quedan en opciones desplegables. Cada usuario configura su propio buzón en cada espacio y las credenciales se guardan cifradas con `AUTH_ENCRYPTION_KEY`.
+
+Gmail, iCloud y Yahoo necesitan una contraseña de aplicación; el formulario enlaza las instrucciones oficiales. Outlook/Hotmail personal requiere OAuth2 y todavía no está disponible. Microsoft 365 depende de la política SMTP de la organización. La comprobación no envía correos. Desde una revisión de presupuesto puedes revisar el PDF y enviarlo al correo de su empresa (editable), registrar el envío y crear el seguimiento.
+
+Los recordatorios son opcionales: añade a tu `.env` un `CRM_REMINDER_TOKEN` generado con `openssl rand -hex 32`, configura `CRM_PUBLIC_URL` con la dirección accesible del CRM y arranca con `docker compose --profile reminders up -d --build`. El servidor debe permanecer encendido. Las actividades pendientes se recuerdan el día anterior desde las 9:00 de Europe/Madrid, al buzón verificado de su responsable. Se desactivan desde Mi correo. Los envíos de resultado incierto no se reintentan automáticamente para evitar duplicados.
+
+Docker incluye Chromium para generar los PDF con el mismo diseño del presupuesto. Sin Docker, instala Chromium y configura `CHROMIUM_PATH` con su ejecutable.

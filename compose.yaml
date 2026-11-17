@@ -8,6 +8,8 @@ services:
     environment:
       DATABASE_URL: postgres://crm:${POSTGRES_PASSWORD}@db:5432/crm
       UPLOAD_DIR: /app/storage/photos
+      CRM_PUBLIC_URL: ${CRM_PUBLIC_URL:-http://localhost:8180}
+      CRM_REMINDER_TOKEN: ${CRM_REMINDER_TOKEN:-}
       CRM_GATEWAY_URL: http://gateway:8090
       CRM_GATEWAY_TOKEN: ${CRM_GATEWAY_TOKEN:?Configura CRM_GATEWAY_TOKEN}
       CRM_DEPLOYMENT_ID: ${CRM_DEPLOYMENT_ID:?Configura CRM_DEPLOYMENT_ID}
@@ -23,6 +25,19 @@ services:
       options:
         max-size: '10m'
         max-file: '3'
+  reminders:
+    profiles: ['reminders']
+    build: ./services/reminders
+    restart: unless-stopped
+    environment:
+      CRM_REMINDER_TOKEN: ${CRM_REMINDER_TOKEN:-}
+    depends_on:
+      - app
+    logging:
+      driver: json-file
+      options:
+        max-size: '5m'
+        max-file: '2'
   gateway:
     build: ./services/gateway
     restart: unless-stopped

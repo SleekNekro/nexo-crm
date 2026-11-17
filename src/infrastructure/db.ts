@@ -1,4 +1,7 @@
 import { Pool } from 'pg';
+import { quoteMailSchema } from '../application/send-quote';
+import { reminderSchema } from '../application/activity-reminders';
+import { mailSchema } from './mail-settings';
 import {
   workspacePool,
   requestWorkspace,
@@ -26,6 +29,9 @@ export function initWorkspaceData(w: Pick<WorkspaceRecord, 'id' | 'schema_name'>
     pending = (async () => {
       const p = poolForWorkspace(w);
       await p.query(salesSchema);
+      await p.query(mailSchema);
+      await p.query(quoteMailSchema);
+      await p.query(reminderSchema);
       await p.query(workAuditSchema);
       await initProducts(p, w.id === 'nexo');
       await migrateEntities(

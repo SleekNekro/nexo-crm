@@ -1,5 +1,7 @@
 'use client';
 import { useState } from 'react';
+import { Send } from 'lucide-react';
+import QuoteEmail from './quote-email';
 import { acceptQuote, markQuoteSent } from '../../domain/actions';
 import { suggestedFollowUp, revisionFollowUp } from '../../domain/quote-workflow';
 import type { Data, Deal } from '../../domain/model';
@@ -28,6 +30,7 @@ export default function QuoteRevisionActions({
   onPrint: () => void;
   onError: (message: string) => void;
 }) {
+  const [emailOpen, setEmailOpen] = useState(false);
   const [success, setSuccess] = useState('');
   const [due, setDue] = useState(() => suggestedFollowUp(localDay()));
   const followUp = revisionFollowUp(data, deal.id, revision.id);
@@ -48,7 +51,26 @@ export default function QuoteRevisionActions({
         · {money(total(revision.lines))} con IVA ·{' '}
         {accepted ? 'Aceptado' : revision.sentAt ? 'Envío registrado' : 'Sin envío registrado'}
       </p>
+      {emailOpen && (
+        <QuoteEmail
+          data={data}
+          deal={deal}
+          revision={revision}
+          onPrint={onPrint}
+          onClose={() => setEmailOpen(false)}
+        />
+      )}
       <div className="quoteactions">
+        {!closed && (
+          <PermissionButton
+            action="deals,tasks"
+            className="primary icon-action quote-email-action"
+            disabled={busy || dirty}
+            onClick={() => setEmailOpen(true)}
+          >
+            <Send size={18} aria-hidden="true" /> Enviar por correo
+          </PermissionButton>
+        )}
         {showPdf && (
           <button disabled={busy} onClick={onPrint}>
             Abrir PDF

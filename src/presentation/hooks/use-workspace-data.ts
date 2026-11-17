@@ -90,6 +90,13 @@ export function useWorkspaceData() {
       window.removeEventListener('offline', offline);
     };
   }, []);
+  useEffect(() => {
+    const changed = () => {
+      void refresh();
+    };
+    window.addEventListener('crm:server-change', changed);
+    return () => window.removeEventListener('crm:server-change', changed);
+  }, []);
   async function refresh() {
     if (busy) return false;
     setBusy(true);
