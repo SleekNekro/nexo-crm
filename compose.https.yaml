@@ -3,6 +3,12 @@ services:
   app:
     environment:
       COOKIE_SECURE: 'true'
+      CRM_PUBLIC_URL: https://${CRM_HTTPS_HOST:?Indica el nombre o IP del servidor}:8443
+  gateway:
+    ports: !override
+      - '127.0.0.1:${APP_PORT:-8080}:8080'
+    environment:
+      CRM_PUBLIC_URL: https://${CRM_HTTPS_HOST:?Indica el nombre o IP del servidor}:8443
   https:
     image: caddy:2.10.2-alpine
     restart: unless-stopped

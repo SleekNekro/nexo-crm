@@ -1,3 +1,7 @@
+import {
+  readJsonObject,
+  RequestInputError,
+} from '../../../src/infrastructure/security/request-input';
 import { currentUser, json, sameOrigin } from '../../../src/infrastructure/security/auth';
 async function relay(req?: Request) {
   try {
@@ -9,7 +13,7 @@ async function relay(req?: Request) {
     const url = process.env.CRM_GATEWAY_URL,
       token = process.env.CRM_GATEWAY_TOKEN;
     if (!url || !token) return json({ error: 'La entrada central no está configurada' }, 503);
-    const b = req ? await req.json() : undefined;
+    const b = req ? await readJsonObject(req, 16384) : undefined;
     const r = await fetch(url + '/settings', {
       method: req ? 'POST' : 'GET',
       headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
@@ -18,7 +22,8 @@ async function relay(req?: Request) {
       signal: AbortSignal.timeout(15000),
     });
     return json(await r.json(), r.status);
-  } catch {
+  } catch (e) {
+    if (e instanceof RequestInputError) return json({ error: e.message }, e.status);
     return json({ error: 'No se puede contactar con el control del servidor' }, 503);
   }
 }

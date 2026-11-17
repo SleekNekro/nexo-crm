@@ -72,7 +72,7 @@ export function poolForWorkspace(w: Pick<WorkspaceRecord, 'id' | 'schema_name'>)
       connectionString: process.env.DATABASE_URL,
       max: 2,
       idleTimeoutMillis: 30000,
-      options: `-c search_path=${w.schema_name},pg_catalog`,
+      options: `-c search_path=${w.schema_name},pg_catalog -c statement_timeout=30000 -c lock_timeout=5000 -c idle_in_transaction_session_timeout=15000`,
     });
     pools.set(w.id, pool);
   }

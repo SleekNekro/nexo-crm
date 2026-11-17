@@ -1,3 +1,8 @@
+import { canReadQuotes } from '../../../src/domain/permissions';
+import {
+  readJsonObject,
+  RequestInputError,
+} from '../../../src/infrastructure/security/request-input';
 import {
   currentUser,
   sameOrigin,
@@ -17,6 +22,7 @@ export async function GET(req: Request) {
   try {
     const u = await currentUser();
     if (!u || u.mustChange) return json({ error: 'Inicia sesión' }, 401);
+    if (!canReadQuotes(u)) return json({ error: 'Sin permiso para consultar presupuestos' }, 403);
     if (!canAct(u, 'deals')) return json({ error: 'Sin permiso' }, 403);
     const dealId = new URL(req.url).searchParams.get('deal');
     const data = visibleData((await readState()).rows[0].data, u);
@@ -51,14 +57,13 @@ export async function POST(req: Request) {
     if (!sameOrigin(req)) return json({ error: 'Origen no permitido' }, 403);
     const u = await currentUser();
     if (!u || u.mustChange) return json({ error: 'Inicia sesión' }, 401);
+    if (!canReadQuotes(u)) return json({ error: 'Sin permiso para consultar presupuestos' }, 403);
     if (!matchesWorkspace(req, u) || !canAct(u, 'deals') || !canAct(u, 'tasks'))
       return json({ error: 'Sin permiso' }, 403);
-    const raw = await req.text();
-    if (raw.length > 20000) return json({ error: 'Mensaje demasiado largo' }, 413);
+    const body = await readJsonObject(req, 20000);
     if (!(await throttle('quote-mail:' + u.id, 20, 3600)))
       return json({ error: 'Límite de envíos alcanzado. Espera una hora.' }, 429);
     await initData();
-    const body = JSON.parse(raw);
     if (body.action === 'resolve') {
       if (
         body.confirmed !== true ||
@@ -107,6 +112,7 @@ export async function POST(req: Request) {
     });
     return json(result);
   } catch (e) {
+    if (e instanceof RequestInputError) return json({ error: e.message }, e.status);
     const message = (e as Error).message || '';
     const safe = [
       'Solicitud de envío no válida.',

@@ -1,3 +1,5 @@
+import { securityAuditSchema } from './audit';
+import { trustedOrigin } from './request-input';
 import { cookies, headers } from 'next/headers';
 import { initWorkspaces, workspaceForUser, workspaceCookie } from '../workspace-store';
 import { createHash, randomBytes } from 'node:crypto';
@@ -23,7 +25,8 @@ ALTER TABLE app_users ADD COLUMN IF NOT EXISTS totp_pending text;
 ALTER TABLE app_users ADD COLUMN IF NOT EXISTS totp_pending_at timestamptz;
 ALTER TABLE app_users ADD COLUMN IF NOT EXISTS totp_last_step bigint NOT NULL DEFAULT -1;
 ALTER TABLE app_users ADD COLUMN IF NOT EXISTS recovery_hashes jsonb NOT NULL DEFAULT '[]';
-ALTER TABLE app_sessions ADD COLUMN IF NOT EXISTS last_seen timestamptz NOT NULL DEFAULT now();`,
+ALTER TABLE app_sessions ADD COLUMN IF NOT EXISTS last_seen timestamptz NOT NULL DEFAULT now();` +
+          securityAuditSchema,
       )
       .catch((e) => {
         schema = undefined;
@@ -80,12 +83,7 @@ export async function currentUser(touch = true, globalOnly = false) {
   };
 }
 export function sameOrigin(req: Request) {
-  const origin = req.headers.get('origin');
-  return (
-    req.headers.get('sec-fetch-site') !== 'cross-site' &&
-    !!origin &&
-    new URL(origin).host === req.headers.get('host')
-  );
+  return trustedOrigin(req, process.env.COOKIE_SECURE === 'true');
 }
 export async function newSession(
   id: string,

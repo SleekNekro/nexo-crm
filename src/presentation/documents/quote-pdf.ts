@@ -1,3 +1,4 @@
+import { isolatedPdf } from './isolated-pdf';
 import puppeteer from 'puppeteer-core';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -16,6 +17,11 @@ export async function quotePdf(
     const logo =
       'data:image/svg+xml;base64,' +
       (await readFile(path.join(process.cwd(), 'public/brand/nexo-logo.svg'))).toString('base64');
+    const html = quoteDocument(deal, revision, company, contact, logo);
+    if (Buffer.byteLength(html, 'utf8') > 4 * 1024 * 1024)
+      throw Error('Documento demasiado grande');
+    if (process.env.CRM_PDF_SOCKET) return await isolatedPdf(html);
+    if (process.env.NODE_ENV === 'production') throw Error('Configura el renderizador PDF aislado');
     const browser = await puppeteer.launch({
       executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
       headless: true,
@@ -31,11 +37,11 @@ export async function quotePdf(
           void request.continue();
         else void request.abort();
       });
-      await page.setContent(quoteDocument(deal, revision, company, contact, logo), {
+      await page.setContent(html, {
         waitUntil: 'load',
         timeout: 15000,
       });
-      return Buffer.from(
+      const pdf = Buffer.from(
         await page.pdf({
           format: 'A4',
           preferCSSPageSize: true,
@@ -43,6 +49,8 @@ export async function quotePdf(
           timeout: 15000,
         }),
       );
+      if (pdf.length > 10 * 1024 * 1024) throw Error('PDF demasiado grande');
+      return pdf;
     } finally {
       await browser.close();
     }

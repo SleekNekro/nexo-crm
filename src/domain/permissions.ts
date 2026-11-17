@@ -1,4 +1,4 @@
-// Navigation choices are independent of data scope, which remains defined by the role.
+// Views constrain server-side reads as well as navigation; roles still constrain ownership.
 export const viewNames = [
   'Resumen',
   'Mi día',
@@ -80,3 +80,51 @@ export const entityAction: Record<string, string> = {
   laborReports: 'labor',
   workExpenses: 'expenses',
 };
+
+// Account delegation is narrower than ordinary data administration.
+// Only the platform developer may create/manage privileged accounts.
+export function canManageAccount(
+  actor: Subject & { platformDeveloper?: boolean },
+  target: Subject & { global_role?: string },
+) {
+  if (actor.platformDeveloper) return true;
+  if (actor.role !== 'admin' || !canView(actor, 'Equipo') || !canAct(actor, 'accounts'))
+    return false;
+  if (
+    ['admin', 'developer'].includes(target.role) ||
+    ['admin', 'developer'].includes(target.global_role || '')
+  )
+    return false;
+  return (
+    availableViews(target.role).every((v) => !canView(target, v) || canView(actor, v)) &&
+    availableActions(target.role).every((a) => !canAct(target, a) || canAct(actor, a))
+  );
+}
+
+export const entityView: Record<string, string> = {
+  companies: 'Empresas',
+  contacts: 'Contactos',
+  deals: 'Tratos',
+  notes: 'Tratos',
+  tasks: 'Actividades',
+  orders: 'Pedidos',
+  works: 'Obras',
+  siteReports: 'Obras',
+  workExpenses: 'Obras',
+  workItems: 'Obras',
+  workZones: 'Obras',
+  laborReports: 'Obras',
+  workers: 'Equipo',
+};
+export function canReadEntity(u: Subject, key: string) {
+  if (u.role === 'worker')
+    return (
+      canView(u, 'Mi día') &&
+      ['works', 'workers', 'workItems', 'workZones', 'laborReports'].includes(key)
+    );
+  if (key === 'workers' && u.role === 'commercial' && canView(u, 'Obras')) return true;
+  return canView(u, entityView[key]) && (key !== 'orders' || canReadQuotes(u));
+}
+export function canReadQuotes(u: Subject) {
+  return ['Tratos', 'Presupuestos', 'Empresas', 'Contactos'].every((view) => canView(u, view));
+}

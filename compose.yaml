@@ -1,12 +1,20 @@
 name: nexo-portfolio
 services:
   app:
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 2g
+    cpus: 2
+    pids_limit: 512
     build: .
     restart: unless-stopped
     ports:
       - '127.0.0.1:${ADMIN_PORT:-8182}:3000'
     environment:
-      DATABASE_URL: postgres://crm:${POSTGRES_PASSWORD}@db:5432/crm
+      DATABASE_URL: postgres://crm_runtime:${CRM_RUNTIME_PASSWORD:?Ejecuta scripts/provision-runtime.py}@db:5432/crm
+      CRM_PDF_SOCKET: /run/crm-pdf/render.sock
       UPLOAD_DIR: /app/storage/photos
       CRM_PUBLIC_URL: ${CRM_PUBLIC_URL:-http://localhost:8180}
       CRM_REMINDER_TOKEN: ${CRM_REMINDER_TOKEN:-}
@@ -17,7 +25,10 @@ services:
       AUTH_ENCRYPTION_KEY: ${AUTH_ENCRYPTION_KEY:?Configura AUTH_ENCRYPTION_KEY en .env}
     volumes:
       - crm_photos:/app/storage
+      - crm_pdf_socket:/run/crm-pdf
     depends_on:
+      pdf:
+        condition: service_started
       db:
         condition: service_healthy
     logging:
@@ -25,7 +36,39 @@ services:
       options:
         max-size: '10m'
         max-file: '3'
+  pdf:
+    build:
+      context: .
+      target: pdf
+    network_mode: none
+    restart: unless-stopped
+    user: node
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+      - /home/node:size=32m,uid=1000,gid=1000
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 768m
+    cpus: 1
+    pids_limit: 256
+    volumes:
+      - crm_pdf_socket:/run/crm-pdf
+    logging:
+      driver: json-file
+      options:
+        max-size: '5m'
+        max-file: '2'
   reminders:
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 128m
+    cpus: 0.5
+    pids_limit: 64
     profiles: ['reminders']
     build: ./services/reminders
     restart: unless-stopped
@@ -39,6 +82,13 @@ services:
         max-size: '5m'
         max-file: '2'
   gateway:
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 128m
+    cpus: 0.5
+    pids_limit: 64
     build: ./services/gateway
     restart: unless-stopped
     ports:
@@ -57,6 +107,8 @@ services:
         max-size: '10m'
         max-file: '3'
   db:
+    mem_limit: 1g
+    pids_limit: 256
     image: postgres:17-bookworm
     restart: unless-stopped
     environment:
@@ -75,6 +127,7 @@ services:
         max-size: '10m'
         max-file: '3'
 volumes:
+  crm_pdf_socket:
   crm_gateway:
   crm_data:
   crm_photos:

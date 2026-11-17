@@ -1,3 +1,4 @@
+import { canReadQuotes } from '../../../src/domain/permissions';
 import { currentUser, json, throttle } from '../../../src/infrastructure/security/auth';
 import { readState } from '../../../src/infrastructure/db';
 import { visibleData } from '../../../src/application/access';
@@ -7,6 +8,7 @@ export async function GET(req: Request) {
   try {
     const u = await currentUser();
     if (!u || u.mustChange) return json({ error: 'Inicia sesión' }, 401);
+    if (!canReadQuotes(u)) return json({ error: 'Sin permiso para consultar presupuestos' }, 403);
     if (!(await throttle('quote-pdf:' + u.id, 20, 900)))
       return json({ error: 'Espera unos minutos antes de generar más PDF.' }, 429);
     const p = new URL(req.url).searchParams;

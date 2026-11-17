@@ -1,4 +1,11 @@
-import { canAct, entityAction, type AccountPermissions } from '../domain/permissions.ts';
+import {
+  canAct,
+  canView,
+  canReadEntity,
+  canReadQuotes,
+  entityAction,
+  type AccountPermissions,
+} from '../domain/permissions.ts';
 import { isDeepStrictEqual as equal } from 'node:util';
 import { canReview, reviewLabor, saveLabor } from '../domain/labor.ts';
 import type { Data, LaborReport } from '../domain/model';
@@ -34,7 +41,7 @@ export const keys = [
   'workItems',
   'workZones',
 ] as const;
-export function visibleData(d: Data, u: Identity): Data {
+function roleVisibleData(d: Data, u: Identity): Data {
   d = structuredClone(d);
   if (isAdmin(u.role)) return d;
   const worker = u.role === 'worker',
@@ -96,6 +103,36 @@ export function visibleData(d: Data, u: Identity): Data {
     workZones: (d.workZones || []).filter((x) => items.some((i) => i.id === x.itemId)),
   };
 }
+// Redacted fields are restored from the stored record when other fields are edited.
+function protectedFields(key: string, u: Identity): string[] {
+  if (u.role === 'worker') return [];
+  if (key === 'deals')
+    return [
+      ...(!canReadQuotes(u) ? ['lines', 'versions', 'acceptedRevisionId', 'acceptedAt'] : []),
+      ...(!canView(u, 'Contactos') ? ['contactId'] : []),
+    ];
+  if (key === 'works' && !canReadQuotes(u)) return ['budgetAmount'];
+  return [];
+}
+function maskRecord(key: string, record: any, u: Identity) {
+  const masked = structuredClone(record);
+  for (const field of protectedFields(key, u)) {
+    if (field === 'lines' || field === 'versions') masked[field] = [];
+    else if (field === 'budgetAmount') masked[field] = null;
+    else delete masked[field];
+  }
+  return masked;
+}
+export function visibleData(d: Data, u: Identity): Data {
+  const scoped = roleVisibleData(d, u);
+  for (const key of keys) {
+    if (!canReadEntity(u, key)) (scoped as any)[key] = [];
+    else if (protectedFields(key, u).length)
+      (scoped as any)[key] = (scoped[key] || []).map((r) => maskRecord(key, r, u));
+  }
+  if (u.role === 'worker' && !canView(u, 'Mi día')) delete scoped.zoneProgress;
+  return scoped;
+}
 const canonical = (v: unknown) => JSON.parse(JSON.stringify(v));
 const same = (a: unknown, b: unknown) => equal(canonical(a ?? null), canonical(b ?? null));
 export function applyAuthorized(current: Data, input: Data, u: Identity, now: string): Data {
@@ -131,7 +168,7 @@ export function applyAuthorized(current: Data, input: Data, u: Identity, now: st
         throw Error(
           'Solo las cuentas con permiso de gestionar el equipo pueden reasignar responsables',
         );
-      if (!canAct(u, entityAction[key]))
+      if (!canReadEntity(u, key) || !canAct(u, entityAction[key]))
         throw Error('Tu cuenta no tiene permiso para realizar esta acción');
       if (
         key === 'works' &&
@@ -140,6 +177,23 @@ export function applyAuthorized(current: Data, input: Data, u: Identity, now: st
       )
         throw Error('No tienes permiso para asignar el equipo');
       const original = current[key]?.find((x) => x.id === id);
+      if (original && !next && protectedFields(key, u).length)
+        throw Error('No puedes eliminar un registro con información oculta');
+      if (
+        key === 'deals' &&
+        original &&
+        next &&
+        !canReadQuotes(u) &&
+        (original as any).stage !== (next as any).stage
+      )
+        throw Error('Se necesita acceso al presupuesto para cambiar la etapa');
+      if (next && protectedFields(key, u).length) {
+        const mask = maskRecord(key, original || {}, u);
+        for (const field of protectedFields(key, u)) {
+          if (!same((next as any)[field], mask[field]))
+            throw Error('No tienes permiso para modificar campos ocultos');
+        }
+      }
       if (original && !old) throw Error('Registro no autorizado');
       if (!next && (u.role === 'worker' || key === 'laborReports'))
         throw Error('No puedes eliminar partes');
@@ -240,6 +294,14 @@ export function applyAuthorized(current: Data, input: Data, u: Identity, now: st
         if (index >= 0) list.splice(index, 1);
       } else if (index < 0) list.push(next);
       else list[index] = next;
+      if (next && original) {
+        const stored = list.find((x) => x.id === id) as any;
+        for (const field of protectedFields(key, u)) {
+          if (Object.hasOwn(original, field))
+            stored[field] = structuredClone((original as any)[field]);
+          else delete stored[field];
+        }
+      }
       (result[key] as unknown) = list;
     }
   }

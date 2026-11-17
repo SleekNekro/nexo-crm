@@ -2,12 +2,17 @@ import { currentUser, json } from '../../../src/infrastructure/security/auth';
 import { initData, pool } from '../../../src/infrastructure/db';
 import { readEntities } from '../../../src/infrastructure/entity-store';
 import { visibleData } from '../../../src/application/access';
-import { canView } from '../../../src/domain/permissions';
+import { canView, canReadQuotes } from '../../../src/domain/permissions';
 export async function GET(req: Request) {
   try {
     const user = await currentUser();
     if (!user) return json({ error: 'Inicia sesión' }, 401);
-    if (user.mustChange || user.role === 'worker' || !canView(user, 'Obras'))
+    if (
+      user.mustChange ||
+      user.role === 'worker' ||
+      !canView(user, 'Obras') ||
+      !canReadQuotes(user)
+    )
       return json({ error: 'Acceso no permitido' }, 403);
     await initData();
     const workId = new URL(req.url).searchParams.get('workId');

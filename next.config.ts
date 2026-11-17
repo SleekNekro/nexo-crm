@@ -1,6 +1,15 @@
 export default {
   output: 'standalone',
-  outputFileTracingExcludes: { '/*': ['./apps/**/*'] },
+  outputFileTracingExcludes: {
+    '/*': [
+      './apps/**/*',
+      './.env*',
+      './.storage/**/*',
+      './storage/**/*',
+      './backups/**/*',
+      './.git/**/*',
+    ],
+  },
   poweredByHeader: false,
   async headers() {
     return [

@@ -73,7 +73,10 @@ test('ganar un trato activa la empresa posible desde el servidor, sin editarla m
     role: 'admin',
     profile: 'Dirección',
     mustChange: false,
-    permissions: { views: ['Tratos'], actions: ['deals', 'orders', 'tasks'] },
+    permissions: {
+      views: ['Empresas', 'Contactos', 'Tratos', 'Presupuestos', 'Pedidos', 'Actividades'],
+      actions: ['deals', 'orders', 'tasks'],
+    },
   };
   const authorized = applyAuthorized(before, input, user, new Date().toISOString());
   let seq = 0;

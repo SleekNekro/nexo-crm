@@ -1,3 +1,7 @@
+import {
+  readJsonObject,
+  RequestInputError,
+} from '../../../src/infrastructure/security/request-input';
 import { randomUUID } from 'node:crypto';
 import { cookies } from 'next/headers';
 import {
@@ -41,7 +45,8 @@ export async function GET() {
         ).rows
       : [];
     return json({ spaces: spaces.rows, accounts });
-  } catch {
+  } catch (e) {
+    if (e instanceof RequestInputError) return json({ error: e.message }, e.status);
     return json({ error: 'No se pueden cargar las empresas' }, 503);
   }
 }
@@ -51,7 +56,7 @@ export async function POST(req: Request) {
     const account = await currentUser(true, true);
     if (!account) return json({ error: 'Inicia sesión' }, 401);
     if (account.mustChange) return json({ error: 'Cambia tu contraseña' }, 403);
-    const b = await req.json();
+    const b = await readJsonObject(req, 2097152);
     if (b.action === 'switch') {
       if (
         typeof b.id !== 'string' ||
@@ -127,7 +132,8 @@ export async function POST(req: Request) {
           await c.query('DELETE FROM crm_workspaces WHERE id=$1 AND ready=false', [id]);
           await c.query(`DROP SCHEMA "${schema}" CASCADE`);
           await c.query('COMMIT');
-        } catch {
+        } catch (e) {
+          if (e instanceof RequestInputError) return json({ error: e.message }, e.status);
           await c.query('ROLLBACK');
         } finally {
           c.release();
@@ -198,7 +204,8 @@ export async function POST(req: Request) {
       return json({ ok: true });
     }
     return json({ error: 'Acción no válida' }, 400);
-  } catch {
+  } catch (e) {
+    if (e instanceof RequestInputError) return json({ error: e.message }, e.status);
     return json({ error: 'No se ha podido guardar la configuración de empresa' }, 503);
   }
 }

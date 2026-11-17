@@ -1,4 +1,5 @@
 'use client';
+import { clearLaborDrafts } from './utils/labor-drafts';
 import ActivityCompletion from './components/activity-completion';
 import { nextCommercialStep } from '../domain/commercial-workflow';
 import { createCompanyQuote } from '../domain/company-quote';
@@ -395,8 +396,7 @@ function Workspace({ user }: { user: Identity | null }) {
           '--brand-accent': brand.accent,
           '--brand-detail': brand.detail || brand.primary,
           '--brand-red': brand.detail || brand.primary,
-          '--brand-nav':
-            brand.primary,
+          '--brand-nav': brand.primary,
           '--brand-nav-text':
             !user?.workspaceId || user.workspaceId === 'nexo'
               ? '#ffffff'
@@ -545,6 +545,15 @@ function Workspace({ user }: { user: Identity | null }) {
                     !confirm('Hay cambios sin guardar. ¿Cerrar sesión?')
                   )
                     return;
+                  if (localStorage.getItem('crm-shared-device') === '1') {
+                    if (
+                      !confirm(
+                        'Se eliminarán los borradores y fotos sin enviar de este dispositivo. ¿Cerrar sesión?',
+                      )
+                    )
+                      return;
+                    await clearLaborDrafts();
+                  }
                   const r = await fetch('/api/auth', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

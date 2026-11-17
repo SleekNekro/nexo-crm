@@ -1,3 +1,7 @@
+import {
+  readJsonObject,
+  RequestInputError,
+} from '../../../src/infrastructure/security/request-input';
 import { applyEntityChanges, entityChanges } from '../../../src/domain/entity-changes';
 import { visibleData } from '../../../src/application/access';
 import {
@@ -52,7 +56,8 @@ export async function GET(req: Request) {
       data: visibleData(r.rows[0].data, user),
       storage: 'postgres',
     });
-  } catch {
+  } catch (e) {
+    if (e instanceof RequestInputError) return json({ error: e.message }, e.status);
     return json({ error: 'No se puede conectar con la base de datos' }, 503);
   }
 }
@@ -64,7 +69,7 @@ export async function PUT(req: Request) {
     if (user && !matchesWorkspace(req, user))
       return json({ error: 'Recarga la página: el espacio ha cambiado' }, 409);
     if (user?.mustChange) return json({ error: 'Cambia tu contraseña para continuar' }, 403);
-    const b = await req.json();
+    const b = await readJsonObject(req, 33554432);
     if (!Number.isInteger(b.version) || (!b.data && !Array.isArray(b.changes)))
       return json({ error: 'Datos no válidos' }, 400);
     if (preview) {
@@ -95,9 +100,13 @@ export async function PUT(req: Request) {
           : { ...memory(), storage: 'memory' },
       );
     }
-    const saved = await saveWorkspace(b, user!);
+    const saved = await saveWorkspace(
+      { version: b.version, data: b.data, changes: b.changes },
+      user!,
+    );
     return json(saved.body, saved.status);
-  } catch {
+  } catch (e) {
+    if (e instanceof RequestInputError) return json({ error: e.message }, e.status);
     return json({ error: 'No se han guardado los cambios' }, 500);
   }
 }

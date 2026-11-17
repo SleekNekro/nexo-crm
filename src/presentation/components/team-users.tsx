@@ -1,4 +1,5 @@
 'use client';
+import { canManageAccount } from '../../domain/permissions';
 import { useEffect, useRef, useState } from 'react';
 import { PermissionForm, PermissionButton } from './permission-controls';
 import AccountPermissionEditor from './account-permissions';
@@ -152,10 +153,7 @@ export default function TeamUsers({
     ? data.workers?.find((w) => 'operario:' + w.id === selected.profile)
     : undefined;
   const reason = selected ? accountRemovalReason(data, selected, user.id) : '';
-  const editable =
-    selected &&
-    selected.id !== user.id &&
-    ((selected.global_role || selected.role) !== 'developer' || user.platformDeveloper);
+  const editable = selected && selected.id !== user.id && canManageAccount(user, selected);
   return (
     <section className="team-accounts">
       <div className="heading">
@@ -253,7 +251,7 @@ export default function TeamUsers({
             Tipo de cuenta
             <select value={role} onChange={(e) => setRole(e.target.value)}>
               {Object.entries(roles)
-                .filter(([v]) => v !== 'developer' || user.platformDeveloper)
+                .filter(([v]) => canManageAccount(user, { role: v }))
                 .map(([v, label]) => (
                   <option key={v} value={v}>
                     {label}

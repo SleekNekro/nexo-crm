@@ -1,3 +1,8 @@
+import { securityEvent } from '../../../src/infrastructure/security/audit';
+import {
+  readJsonObject,
+  RequestInputError,
+} from '../../../src/infrastructure/security/request-input';
 import { systemPool as pool } from '../../../src/infrastructure/system-db';
 import {
   currentUser,
@@ -37,7 +42,7 @@ export async function POST(req: Request) {
     if (!sameOrigin(req)) return json({ error: 'Origen no permitido' }, 403);
     const u = await currentUser(true, true);
     if (!u || u.mustChange) return json({ error: 'Inicia sesión' }, 401);
-    const b = await req.json();
+    const b = await readJsonObject(req, 8192);
     if (!(await throttle('security:' + u.id)))
       return json({ error: 'Demasiados intentos. Espera 15 minutos.' }, 429);
     const r = await pool.query('SELECT * FROM app_users WHERE id=$1', [u.id]),
@@ -82,6 +87,7 @@ export async function POST(req: Request) {
       );
       if (!updated.rowCount)
         return json({ error: 'La cuenta ha cambiado. Vuelve a iniciar sesión.' }, 409);
+      await securityEvent({ actor: u.id, target: u.id, event: '2fa.' + b.action });
       await pool.query('DELETE FROM app_sessions WHERE user_id=$1', [u.id]);
       await newSession(u.id, row.password_hash, row.totp_pending);
       await pool.query('DELETE FROM auth_attempts WHERE username=$1', ['security:' + u.id]);
@@ -94,13 +100,15 @@ export async function POST(req: Request) {
         "UPDATE app_users SET totp_secret=NULL,totp_pending=NULL,totp_pending_at=NULL,totp_last_step=-1,recovery_hashes='[]' WHERE id=$1 AND password_hash=$2",
         [u.id, row.password_hash],
       );
+      await securityEvent({ actor: u.id, target: u.id, event: '2fa.' + b.action });
       await pool.query('DELETE FROM app_sessions WHERE user_id=$1', [u.id]);
       await newSession(u.id, row.password_hash);
       await pool.query('DELETE FROM auth_attempts WHERE username=$1', ['security:' + u.id]);
       return json({ ok: true });
     }
     return json({ error: 'Acción no válida' }, 400);
-  } catch {
+  } catch (e) {
+    if (e instanceof RequestInputError) return json({ error: e.message }, e.status);
     return json({ error: 'No se ha podido actualizar la seguridad' }, 503);
   }
 }

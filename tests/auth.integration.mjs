@@ -52,7 +52,13 @@ const boot = execFileSync(
 const temp = boot.match(/Contraseña temporal: (.+)/)[1];
 // This suite starts with an administrator; the public demo bootstraps a developer.
 // Only downgrade its disposable fixture, never an existing installation.
-execFileSync('docker', ['exec', 'nexo-auth-check', 'node', '--input-type=module', '-e', `
+execFileSync('docker', [
+  'exec',
+  'nexo-auth-check',
+  'node',
+  '--input-type=module',
+  '-e',
+  `
 import pg from 'pg';
 if (!process.env.DATABASE_URL.endsWith('/crm_auth_check')) throw Error('Not a disposable database');
 const db = new pg.Client({connectionString:process.env.DATABASE_URL});
@@ -60,7 +66,8 @@ await db.connect();
 await db.query("UPDATE app_users SET role='admin' WHERE username='developer'");
 await db.query("UPDATE crm_memberships SET role='admin' WHERE user_id IN (SELECT id FROM app_users WHERE username='developer')");
 await db.end();
-`]);
+`,
+]);
 let a = await auth('', { action: 'login', username: 'developer', password: temp });
 assert.equal(a.status, 200);
 assert.match(a.headers.get('set-cookie'), /HttpOnly/i);
@@ -182,6 +189,12 @@ for (const mutate of [
   assert.equal(unchanged.version, issued.data.version);
   assert.deepEqual(unchanged.data, issued.data.data);
 }
+function fixtureRole(role) {
+  if (!['admin', 'developer'].includes(role)) throw Error('Rol de prueba no válido');
+  execFileSync('docker', ['exec', '-i', 'nexo-auth-check', 'node', '--input-type=module'], {
+    input: `import pg from 'pg'; if(!process.env.DATABASE_URL.endsWith('/crm_auth_check'))throw Error('Solo BD de pruebas');const p=new pg.Client({connectionString:process.env.DATABASE_URL});await p.connect();await p.query("UPDATE public.app_users SET role=$1 WHERE username='developer'",['${role}']);await p.end();`,
+  });
+}
 async function create(username, role, profile) {
   const r = await call('/api/users', {
     cookie: a.cookie,
@@ -195,7 +208,9 @@ async function create(username, role, profile) {
   return s.cookie;
 }
 // Account permission changes: developer-only, role ceiling and immediate session revocation.
+fixtureRole('developer');
 const limitedCookie = await create('permission-test', 'admin', 'Dirección');
+fixtureRole('admin');
 const listed = await call('/api/users', { cookie: a.cookie });
 const limitedId = listed.data.users.find((u) => u.username === 'permission-test').id;
 const restriction = {
@@ -204,19 +219,7 @@ const restriction = {
   permissions: { views: ['Empresas'], actions: [] },
 };
 assert.equal((await call('/api/users', { cookie: a.cookie, body: restriction })).status, 403);
-execFileSync('docker', [
-  'compose',
-  'exec',
-  '-T',
-  'db',
-  'psql',
-  '-U',
-  'crm',
-  '-d',
-  'crm_auth_check',
-  '-c',
-  "UPDATE app_users SET role='developer' WHERE username='developer'",
-]);
+fixtureRole('developer');
 assert.equal(
   (
     await call('/api/users', {
@@ -244,19 +247,7 @@ assert.equal(
     .status,
   200,
 );
-execFileSync('docker', [
-  'compose',
-  'exec',
-  '-T',
-  'db',
-  'psql',
-  '-U',
-  'crm',
-  '-d',
-  'crm_auth_check',
-  '-c',
-  "UPDATE app_users SET role='admin' WHERE username='developer'",
-]);
+fixtureRole('admin');
 const catalogue = await call('/api/products', { cookie: a.cookie });
 assert.equal(catalogue.status, 200);
 assert.equal(catalogue.data.products.length, 6);
@@ -699,8 +690,16 @@ assert.equal((await call('/api/data', { cookie: firstCookie })).status, 401);
 const challenge = await auth('', { action: 'login', username: 'developer', password });
 assert.equal(challenge.data.requiresCode, true);
 assert.equal(challenge.cookie, '');
-assert.equal((await auth('', { action: 'login', username: 'developer', password, code })).status, 401);
-let recovered = await auth('', { action: 'login', username: 'developer', password, code: codes[0] });
+assert.equal(
+  (await auth('', { action: 'login', username: 'developer', password, code })).status,
+  401,
+);
+let recovered = await auth('', {
+  action: 'login',
+  username: 'developer',
+  password,
+  code: codes[0],
+});
 assert.equal(recovered.status, 200, JSON.stringify(recovered.data));
 assert.equal(
   (await auth('', { action: 'login', username: 'developer', password, code: codes[0] })).status,

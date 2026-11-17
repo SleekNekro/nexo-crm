@@ -1,3 +1,5 @@
+import { documentCsp } from '../../../src/infrastructure/security/csp';
+import { canReadQuotes } from '../../../src/domain/permissions';
 import { currentUser } from '../../../src/infrastructure/security/auth';
 import { readState } from '../../../src/infrastructure/db';
 import { visibleData } from '../../../src/application/access';
@@ -6,6 +8,7 @@ import { quoteDocument } from '../../../src/presentation/documents/quote-documen
 export async function GET(req: Request) {
   const headers = {
     'Content-Type': 'text/html; charset=utf-8',
+    'Content-Security-Policy': documentCsp(),
     'Cache-Control': 'private, no-store',
   };
   const fail = (message: string, status: number) =>
@@ -16,6 +19,7 @@ export async function GET(req: Request) {
   try {
     const user = await currentUser();
     if (!user) return fail('Inicia sesión para abrir el presupuesto.', 401);
+    if (!canReadQuotes(user)) return fail('Sin permiso para consultar presupuestos.', 403);
     if (user.mustChange) return fail('Cambia tu contraseña para continuar.', 403);
     const params = new URL(req.url).searchParams;
     if (params.get('workspace') !== user.workspaceId)

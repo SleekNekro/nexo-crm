@@ -45,10 +45,24 @@ export function connection(value: any): MailConnection {
     throw Error('Usa SSL/TLS (465) o STARTTLS (587).');
   return { host, port: value.port, security: value.security };
 }
+// A single plain mailbox, never a display-name, address list or SMTP group.
+export function validMailbox(email: unknown): email is string {
+  if (typeof email !== 'string' || email.length > 254) return false;
+  const parts = email.split('@');
+  return (
+    parts.length === 2 &&
+    parts[0].length > 0 &&
+    parts[0].length <= 64 &&
+    /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(parts[0]) &&
+    !parts[0].startsWith('.') &&
+    !parts[0].endsWith('.') &&
+    !parts[0].includes('..') &&
+    /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$/.test(parts[1])
+  );
+}
 export function mailbox(value: any) {
   const email = typeof value?.email === 'string' ? value.email.trim() : '';
-  if (email.length > 254 || !/^[^\s<>@,;]+@[^\s<>@,;]+\.[^\s<>@,;]+$/.test(email))
-    throw Error('Introduce un correo válido.');
+  if (!validMailbox(email)) throw Error('Introduce un correo válido.');
   const name = typeof value.name === 'string' ? value.name.trim() : '';
   const username =
     typeof value.username === 'string' && value.username.trim() ? value.username.trim() : email;
@@ -56,9 +70,9 @@ export function mailbox(value: any) {
   if (
     !name ||
     name.length > 120 ||
-    /[\r\n]/.test(name) ||
+    /[\x00-\x1f\x7f]/.test(name) ||
     username.length > 254 ||
-    /[\r\n]/.test(username) ||
+    /[\x00-\x1f\x7f]/.test(username) ||
     signature.length > 2000
   )
     throw Error('Revisa el nombre, usuario o firma.');

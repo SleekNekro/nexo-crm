@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
+import { validInternalToken } from '../../../../src/infrastructure/security/request-input';
 import { initAuth, json } from '../../../../src/infrastructure/security/auth';
 import { systemPool } from '../../../../src/infrastructure/system-db';
 import { initWorkspaceData } from '../../../../src/infrastructure/db';
@@ -14,13 +14,7 @@ export const runtime = 'nodejs';
 export async function POST(req: Request) {
   const secret = process.env.CRM_REMINDER_TOKEN,
     provided = req.headers.get('authorization')?.replace(/^Bearer /, '') || '';
-  if (
-    !secret ||
-    secret.length < 32 ||
-    provided.length !== secret.length ||
-    !timingSafeEqual(Buffer.from(provided), Buffer.from(secret))
-  )
-    return json({ error: 'No disponible' }, 404);
+  if (!validInternalToken(provided, secret)) return json({ error: 'No disponible' }, 404);
   if (!reminderWindow().ready) return json({ status: 'before-window' });
   await initAuth();
   const lock = await systemPool.connect();

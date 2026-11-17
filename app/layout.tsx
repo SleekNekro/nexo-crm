@@ -1,3 +1,4 @@
+import { connection } from 'next/server';
 import type { Metadata, Viewport } from 'next';
 import './style.css';
 import './controls.css';
@@ -14,7 +15,8 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
   themeColor: '#2563eb',
 };
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default async function Layout({ children }: { children: React.ReactNode }) {
+  await connection();
   return (
     <html lang="es">
       <body>{children}</body>

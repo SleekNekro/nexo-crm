@@ -41,8 +41,9 @@ export default function AccountPermissionEditor({
         Vistas y permisos · {value.views.length} vistas · {value.actions.length} acciones
       </summary>
       <p>
-        Las vistas controlan la navegación. Los datos vinculados pueden aparecer en otras vistas
-        permitidas. El rol mantiene el alcance de la cartera y las obras asignadas.
+        Las vistas restringen también la lectura de datos en fichas y documentos. Para consultar
+        presupuestos y pedidos se necesitan Tratos, Presupuestos, Empresas y Contactos. Análisis
+        requiere las vistas comerciales. El rol limita la cartera y las obras asignadas.
       </p>
       <div className="form-actions">
         <button

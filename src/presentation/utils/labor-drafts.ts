@@ -52,3 +52,5 @@ export const writeLaborDraft = (account: string, report: LaborReport) =>
   );
 export const deleteLaborDraft = (account: string, id: string) =>
   run('readwrite', (s) => s.delete(account + ':' + id));
+
+export const clearLaborDrafts = () => run('readwrite', (s) => s.clear());

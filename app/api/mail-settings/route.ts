@@ -1,3 +1,7 @@
+import {
+  readJsonObject,
+  RequestInputError,
+} from '../../../src/infrastructure/security/request-input';
 import { randomUUID } from 'node:crypto';
 import {
   currentUser,
@@ -48,11 +52,7 @@ export async function POST(req: Request) {
     if (!u || u.mustChange) return json({ error: 'Inicia sesión' }, 401);
     if (!matchesWorkspace(req, u) || !canAct(u, 'deals'))
       return json({ error: 'Sin permiso' }, 403);
-    if (Number(req.headers.get('content-length')) > 16000)
-      return json({ error: 'Solicitud demasiado grande' }, 413);
-    const raw = await req.text();
-    if (raw.length > 16000) return json({ error: 'Solicitud demasiado grande' }, 413);
-    const b = JSON.parse(raw);
+    const b = await readJsonObject(req, 16000);
     await initData();
     if (b.action === 'provider' || b.action === 'default') {
       if (!u.platformDeveloper)
@@ -190,6 +190,7 @@ export async function POST(req: Request) {
       db.release();
     }
   } catch (e) {
+    if (e instanceof RequestInputError) return json({ error: e.message }, e.status);
     const safe = [
       'Indica el nombre del servidor SMTP, sin https:// ni rutas.',
       'Usa SSL/TLS (465) o STARTTLS (587).',

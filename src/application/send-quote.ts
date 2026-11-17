@@ -1,3 +1,4 @@
+import { validMailbox } from '../domain/mail-settings.ts';
 import { randomUUID, createHash } from 'node:crypto';
 import type { Pool } from 'pg';
 import type { Identity } from './access';
@@ -32,7 +33,7 @@ export type SendDependencies = {
   deliver: (account: any, mail: any) => Promise<void>;
   reauthorize: () => Promise<Identity | null>;
 };
-export function validateSend(b: SendRequest) {
+export function validateSend(b: any): asserts b is SendRequest {
   if (
     !b ||
     !/^[a-f0-9-]{36}$/i.test(b.id) ||
@@ -42,17 +43,12 @@ export function validateSend(b: SendRequest) {
     b.revisionId.length > 150
   )
     throw Error('Solicitud de envío no válida.');
-  if (
-    typeof b.recipient !== 'string' ||
-    b.recipient.length > 254 ||
-    !/^[^\s<>@,;]+@[^\s<>@,;]+\.[^\s<>@,;]+$/.test(b.recipient)
-  )
-    throw Error('Introduce un único destinatario válido.');
+  if (!validMailbox(b.recipient)) throw Error('Introduce un único destinatario válido.');
   if (
     typeof b.subject !== 'string' ||
     !b.subject.trim() ||
     b.subject.length > 200 ||
-    /[\r\n]/.test(b.subject) ||
+    /[\x00-\x1f\x7f]/.test(b.subject) ||
     typeof b.body !== 'string' ||
     !b.body.trim() ||
     b.body.length > 12000
@@ -152,7 +148,7 @@ export async function reconcileMail(db: Pool, id: string) {
     c.release();
   }
 }
-export async function sendQuote(db: Pool, user: Identity, b: SendRequest, deps: SendDependencies) {
+export async function sendQuote(db: Pool, user: Identity, b: unknown, deps: SendDependencies) {
   validateSend(b);
   const requestHash = createHash('sha256')
     .update(JSON.stringify([b.dealId, b.revisionId, b.recipient, b.subject, b.body, b.due]))

@@ -1,3 +1,7 @@
+import {
+  readJsonObject,
+  RequestInputError,
+} from '../../../src/infrastructure/security/request-input';
 import { canAct, canView } from '../../../src/domain/permissions';
 import { initData, pool } from '../../../src/infrastructure/db';
 import {
@@ -20,7 +24,8 @@ export async function GET() {
       [user.id],
     );
     return json({ products: result.rows });
-  } catch {
+  } catch (e) {
+    if (e instanceof RequestInputError) return json({ error: e.message }, e.status);
     return json({ error: 'No se ha podido cargar el catálogo' }, 503);
   }
 }
@@ -38,7 +43,7 @@ export async function PATCH(req: Request) {
       (!canView(user, 'Catálogo') && !canView(user, 'Presupuestos'))
     )
       return json({ error: 'Acceso no permitido' }, 403);
-    const b = await req.json();
+    const b = await readJsonObject(req, 2097152);
     if (typeof b.code !== 'string') return json({ error: 'Referencia no válida' }, 400);
     await initData();
     if (typeof b.favorite === 'boolean') {
@@ -73,7 +78,8 @@ export async function PATCH(req: Request) {
     if (!r.rowCount)
       return json({ error: 'El producto ha cambiado. Recarga el catálogo antes de guardar.' }, 409);
     return json({ product: r.rows[0] });
-  } catch {
+  } catch (e) {
+    if (e instanceof RequestInputError) return json({ error: e.message }, e.status);
     return json({ error: 'No se ha guardado el producto' }, 500);
   }
 }
@@ -87,7 +93,7 @@ export async function POST(req: Request) {
     if (!u) return json({ error: 'Inicia sesión' }, 401);
     if (u.mustChange || !canView(u, 'Catálogo') || !canAct(u, 'products'))
       return json({ error: 'No tienes permiso para crear productos' }, 403);
-    const b = await req.json();
+    const b = await readJsonObject(req, 2097152);
     if (
       typeof b.code !== 'string' ||
       !b.code.trim() ||
@@ -109,6 +115,7 @@ export async function POST(req: Request) {
     );
     return json({ product: r.rows[0] }, 201);
   } catch (e) {
+    if (e instanceof RequestInputError) return json({ error: e.message }, e.status);
     return json(
       {
         error:

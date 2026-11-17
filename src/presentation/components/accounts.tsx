@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Mail } from 'lucide-react';
 import MailSettings from './mail-settings';
 import { canAct } from '../../domain/permissions';
@@ -7,6 +7,10 @@ import type { Identity } from '../../application/access';
 import { FormDialog } from './dialog';
 import SecuritySettings from './security-settings';
 export default function Accounts({ user, onClose }: { user: Identity; onClose: () => void }) {
+  const [sharedDevice, setSharedDevice] = useState(false);
+  useEffect(() => {
+    setSharedDevice(localStorage.getItem('crm-shared-device') === '1');
+  }, []);
   const [mailOpen, setMailOpen] = useState(false);
   const [error, setError] = useState(''),
     [notice, setNotice] = useState(''),
@@ -36,6 +40,17 @@ export default function Accounts({ user, onClose }: { user: Identity; onClose: (
     <FormDialog title="Mi cuenta" onClose={onClose}>
       <button onClick={onClose}>Cerrar</button>
       <h2>Mi cuenta · {user.username}</h2>
+      <label className="check-row">
+        <input
+          type="checkbox"
+          checked={sharedDevice}
+          onChange={(e) => {
+            setSharedDevice(e.target.checked);
+            localStorage.setItem('crm-shared-device', e.target.checked ? '1' : '0');
+          }}
+        />
+        Dispositivo compartido: eliminar borradores y fotos sin enviar al cerrar sesión
+      </label>
       {canAct(user, 'deals') && (
         <button className="primary icon-action" type="button" onClick={() => setMailOpen(true)}>
           <Mail size={18} aria-hidden="true" /> Configurar mi correo

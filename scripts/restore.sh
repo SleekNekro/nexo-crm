@@ -24,5 +24,6 @@ docker compose exec -T db createdb -U crm crm
 docker compose exec -T db pg_restore -U crm -d crm --no-owner --exit-on-error < "$backup_dir/database.dump"
 docker compose run --rm --no-deps -T --entrypoint tar app -C /app/storage -xf - < "$backup_dir/photos.tar"
 docker compose exec -T db psql -U crm -d crm -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF to_regclass('public.app_sessions') IS NOT NULL THEN DELETE FROM app_sessions; END IF; END \$\$;"
-docker compose up -d app
+python3 scripts/provision-runtime.py
+docker compose up -d pdf app
 printf 'Restauración completada. Comprueba obras, partes y fotos antes de continuar.\n'

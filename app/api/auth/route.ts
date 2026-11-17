@@ -1,3 +1,8 @@
+import { securityEvent } from '../../../src/infrastructure/security/audit';
+import {
+  readJsonObject,
+  RequestInputError,
+} from '../../../src/infrastructure/security/request-input';
 import { preview } from '../../../src/infrastructure/db';
 import { systemPool as pool } from '../../../src/infrastructure/system-db';
 import {
@@ -27,7 +32,7 @@ export async function POST(req: Request) {
     if (!sameOrigin(req)) return json({ error: 'Origen no permitido' }, 403);
     if (preview) return json({ error: 'Usa el servidor en el puerto 8080' }, 400);
     await initAuth();
-    const b = await req.json();
+    const b = await readJsonObject(req, 8192);
     if (b.action === 'logout') {
       await clearSession();
       return json({ ok: true });
@@ -68,6 +73,7 @@ export async function POST(req: Request) {
       if (!updated.rowCount)
         return json({ error: 'La cuenta ha cambiado. Inicia sesión de nuevo' }, 401);
       await pool.query('DELETE FROM app_sessions WHERE user_id=$1', [u.id]);
+      await securityEvent({ actor: u.id, target: u.id, event: 'password.changed' });
       await newSession(u.id, newHash, r.rows[0].totp_secret);
       return json({ ok: true });
     }
@@ -88,8 +94,10 @@ export async function POST(req: Request) {
       [username],
     );
     const hash = r.rows[0]?.password_hash || '00000000000000000000000000000000:' + '0'.repeat(128);
-    if (!(await checkPassword(b.password, hash)) || !r.rowCount)
+    if (!(await checkPassword(b.password, hash)) || !r.rowCount) {
+      await securityEvent({ target: r.rows[0]?.id, event: 'login', result: 'denied' });
       return json({ error: 'Usuario, contraseña o código incorrectos' }, 401);
+    }
     if (r.rows[0].totp_secret && !b.code) return json({ requiresCode: true });
     if (
       r.rows[0].totp_secret &&
@@ -97,9 +105,11 @@ export async function POST(req: Request) {
     )
       return json({ error: 'Usuario, contraseña o código incorrectos' }, 401);
     await pool.query('DELETE FROM auth_attempts WHERE username=$1', [username]);
+    await securityEvent({ actor: r.rows[0].id, event: 'login' });
     await newSession(r.rows[0].id, r.rows[0].password_hash, r.rows[0].totp_secret);
     return json({ ok: true });
-  } catch {
+  } catch (e) {
+    if (e instanceof RequestInputError) return json({ error: e.message }, e.status);
     return json({ error: 'No se ha podido completar el acceso' }, 503);
   }
 }

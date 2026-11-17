@@ -10,8 +10,13 @@ for key in AUTH_ENCRYPTION_KEY CRM_GATEWAY_TOKEN CRM_DEPLOYMENT_ID; do
     printf '%s=%s\n' "$key" "$(openssl rand -hex 32)" >> .env
   fi
 done
+if ! grep -q '^CRM_RUNTIME_PASSWORD=' .env; then
+  printf 'CRM_RUNTIME_PASSWORD=%s\n' "$(openssl rand -hex 32)" >> .env
+fi
 chmod 600 .env
 docker compose config --quiet
+docker compose up -d --wait db
+python3 scripts/provision-runtime.py
 docker compose up -d --build
 ready=0
 for attempt in $(seq 1 60); do

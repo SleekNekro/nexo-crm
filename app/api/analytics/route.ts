@@ -13,7 +13,18 @@ export async function GET(req: Request) {
   try {
     const user = await currentUser();
     if (!user) return json({ error: 'Inicia sesión' }, 401);
-    if (!canView(user, 'Análisis')) return json({ error: 'Acceso no permitido' }, 403);
+    if (
+      ![
+        'Análisis',
+        'Empresas',
+        'Contactos',
+        'Tratos',
+        'Presupuestos',
+        'Actividades',
+        'Pedidos',
+      ].every((v) => canView(user, v))
+    )
+      return json({ error: 'Acceso no permitido' }, 403);
     if (!isAdmin(user.role) || user.mustChange) return json({ error: 'Solo administradores' }, 403);
     const params = new URL(req.url).searchParams,
       from = params.get('from') || new Date().toISOString().slice(0, 8) + '01',

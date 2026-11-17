@@ -67,7 +67,7 @@ La misma web adaptada a una pantalla pequeña. Captura del navegador a tamaño m
 
 ## Pruébalo en tu equipo
 
-Necesitas **Docker con Compose, Git, Bash y OpenSSL**. En Windows, utiliza WSL2 con Docker integrado.
+Necesitas **Docker con Compose, Git, Bash, Python 3 y OpenSSL**. En Windows, utiliza WSL2 con Docker integrado.
 
 ```bash
 git clone https://github.com/SleekNekro/nexo-crm.git
@@ -90,12 +90,12 @@ La instalación escucha solo en tu equipo y conserva los datos entre reinicios. 
 
 Todos los clientes necesitan un **servidor Nexo encendido y accesible**. El teléfono no ejecuta el backend ni la base de datos.
 
-| Plataforma | Estado actual |
-|---|---|
-| Web | Puedes arrancarla con las instrucciones anteriores. |
-| Android 8+ | Código Java/WebView para compilar tu APK. No hay APK listo para descargar. |
-| macOS / Windows | Código Tauri 2 para compilar los clientes. No se incluyen instaladores. |
-| iPhone | Web con manifiesto PWA; necesita HTTPS de confianza para instalarla desde Safari. |
+| Plataforma      | Estado actual                                                                     |
+| --------------- | --------------------------------------------------------------------------------- |
+| Web             | Puedes arrancarla con las instrucciones anteriores.                               |
+| Android 8+      | Código Java/WebView para compilar tu APK. No hay APK listo para descargar.        |
+| macOS / Windows | Código Tauri 2 para compilar los clientes. No se incluyen instaladores.           |
+| iPhone          | Web con manifiesto PWA; necesita HTTPS de confianza para instalarla desde Safari. |
 
 La [guía de aplicaciones](apps/README.md) explica la compilación, la prueba Android por USB y las limitaciones actuales.
 
@@ -135,4 +135,4 @@ Gmail, iCloud y Yahoo necesitan una contraseña de aplicación; el formulario en
 
 Los recordatorios son opcionales: añade a tu `.env` un `CRM_REMINDER_TOKEN` generado con `openssl rand -hex 32`, configura `CRM_PUBLIC_URL` con la dirección accesible del CRM y arranca con `docker compose --profile reminders up -d --build`. El servidor debe permanecer encendido. Las actividades pendientes se recuerdan el día anterior desde las 9:00 de Europe/Madrid, al buzón verificado de su responsable. Se desactivan desde Mi correo. Los envíos de resultado incierto no se reintentan automáticamente para evitar duplicados.
 
-Docker incluye Chromium para generar los PDF con el mismo diseño del presupuesto. Sin Docker, instala Chromium y configura `CHROMIUM_PATH` con su ejecutable.
+Docker incluye un servicio Chromium aislado, sin red, para generar los PDF. El arranque necesita Python 3 para preparar el usuario PostgreSQL sin privilegios administrativos. En desarrollo sin Docker puedes instalar Chromium y configurar `CHROMIUM_PATH`; en producción se requiere el servicio aislado mediante `CRM_PDF_SOCKET`. Consulta [SECURITY.md](SECURITY.md) antes de actualizar una instalación existente.

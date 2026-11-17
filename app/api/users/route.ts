@@ -1,6 +1,16 @@
+import { securityEvent } from '../../../src/infrastructure/security/audit';
+import {
+  readJsonObject,
+  RequestInputError,
+} from '../../../src/infrastructure/security/request-input';
 import { accountRemovalReason } from '../../../src/domain/account-removal';
 import { randomUUID } from 'node:crypto';
-import { canAct, canView, validPermissions } from '../../../src/domain/permissions';
+import {
+  canAct,
+  canView,
+  validPermissions,
+  canManageAccount,
+} from '../../../src/domain/permissions';
 import { isAdmin } from '../../../src/domain/roles';
 import { validTemporaryAccess } from '../../../src/domain/temporary-access';
 import { initData, pool } from '../../../src/infrastructure/db';
@@ -37,18 +47,22 @@ export async function POST(req: Request) {
       return json({ error: 'Recarga la página: el espacio ha cambiado' }, 409);
     if (!u) return json({ error: 'Inicia sesión' }, 401);
     if (!allowed(u)) return json({ error: 'Acceso no permitido' }, 403);
+    const b = await readJsonObject(req, 32 * 1024);
     await initData();
     const c = await pool.connect();
     let committed = false;
     try {
       await c.query('BEGIN');
       const state = (await lockEntities(c, 'UPDATE')).rows[0].data;
-      const b = await req.json(),
-        wid = u.workspaceId;
+      const wid = u.workspaceId;
       const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(
         new Date(),
       );
       const finish = async (status = 200) => {
+        await securityEvent(
+          { actor: u.id, target: b.id, workspace: wid, event: 'account.' + b.action },
+          c,
+        );
         await c.query('COMMIT');
         committed = true;
         return json({ ok: true }, status);
@@ -57,13 +71,25 @@ export async function POST(req: Request) {
         if (typeof b.id !== 'string') return json({ error: 'Cuenta no válida' }, 400);
         await c.query('SELECT id FROM public.app_users WHERE id=$1 FOR UPDATE', [b.id]);
         const r = await c.query(
-          `SELECT m.*,a.id,a.username,a.role AS global_role FROM public.crm_memberships m JOIN public.app_users a ON a.id=m.user_id WHERE m.workspace_id=$1 AND m.user_id=$2 FOR UPDATE OF m`,
+          `SELECT m.*,a.id,a.username,a.active AS global_active,a.role AS global_role FROM public.crm_memberships m JOIN public.app_users a ON a.id=m.user_id WHERE m.workspace_id=$1 AND m.user_id=$2 FOR UPDATE OF m`,
           [wid, b.id],
         );
         const target = r.rows[0];
         if (!target) return json({ error: 'Cuenta no encontrada en esta empresa' }, 404);
-        if (target.global_role === 'developer' && !u.platformDeveloper)
-          return json({ error: 'Solo Desarrollador puede gestionar esta cuenta' }, 403);
+        if (!canManageAccount(u, target))
+          return json(
+            { error: 'Esta cuenta requiere gestión del desarrollador: supera tus permisos' },
+            403,
+          );
+        if (
+          !target.global_active &&
+          !u.platformDeveloper &&
+          (b.action === 'temporary' || (b.action === 'active' && b.active === true))
+        )
+          return json(
+            { error: 'Solo Desarrollador puede reactivar una cuenta desactivada globalmente' },
+            403,
+          );
         if (b.action === 'remove') {
           const reason = accountRemovalReason(state, target, u.id);
           if (reason) return json({ error: reason }, 409);
@@ -76,7 +102,7 @@ export async function POST(req: Request) {
             `DELETE FROM public.app_users WHERE id=$1 AND NOT EXISTS (SELECT 1 FROM public.crm_memberships WHERE user_id=$1)`,
             [b.id],
           );
-          return finish();
+          return await finish();
         }
         if (b.action === 'permissions') {
           if (!u.platformDeveloper)
@@ -90,7 +116,7 @@ export async function POST(req: Request) {
             [b.permissions, wid, b.id],
           );
           await c.query('DELETE FROM public.app_sessions WHERE user_id=$1', [b.id]);
-          return finish();
+          return await finish();
         }
         if (b.action === 'temporary') {
           if (
@@ -105,7 +131,7 @@ export async function POST(req: Request) {
           );
           await c.query('UPDATE public.app_users SET active=true WHERE id=$1', [b.id]);
           await c.query('DELETE FROM public.app_sessions WHERE user_id=$1', [b.id]);
-          return finish();
+          return await finish();
         }
         if (!['active', 'reset'].includes(b.action))
           return json({ error: 'Acción no válida' }, 400);
@@ -155,7 +181,7 @@ export async function POST(req: Request) {
           );
           await c.query('DELETE FROM public.app_sessions WHERE user_id=$1', [b.id]);
         }
-        return finish();
+        return await finish();
       }
       if (
         typeof b.username !== 'string' ||
@@ -168,8 +194,11 @@ export async function POST(req: Request) {
         );
       const username = b.username.trim().toLowerCase();
       if (!/^[a-z0-9._-]{3,50}$/.test(username)) return json({ error: 'Usuario no válido' }, 400);
-      if (b.role === 'developer' && !u.platformDeveloper)
-        return json({ error: 'Solo Desarrollador puede crear otro Admin+' }, 403);
+      if (!canManageAccount(u, { role: b.role }))
+        return json(
+          { error: 'No puedes crear una cuenta con permisos superiores a los tuyos' },
+          403,
+        );
       const profile = isAdmin(b.role)
         ? 'Dirección'
         : b.role === 'commercial'
@@ -223,6 +252,7 @@ export async function POST(req: Request) {
           400,
         );
       const id = randomUUID();
+      b.id = id;
       await c.query(
         'INSERT INTO public.app_users(id,username,password_hash,role,profile,display_name) VALUES($1,$2,$3,$4,$5,$6)',
         [id, username, await hashPassword(b.password), b.role, profile, username],
@@ -231,12 +261,13 @@ export async function POST(req: Request) {
         `INSERT INTO public.crm_memberships(workspace_id,user_id,role,profile,external,access_until,work_scope) VALUES($1,$2,$3,$4,$5,CASE WHEN $5 THEN (($6::date+1)::timestamp AT TIME ZONE 'Europe/Madrid') ELSE NULL END,$7)`,
         [wid, id, b.role, profile, external, external ? b.end : null, external ? b.scope : null],
       );
-      return finish(201);
+      return await finish(201);
     } finally {
       if (!committed) await c.query('ROLLBACK');
       c.release();
     }
   } catch (e) {
+    if (e instanceof RequestInputError) return json({ error: e.message }, e.status);
     if ((e as { code?: string }).code === '23505')
       return json(
         {
