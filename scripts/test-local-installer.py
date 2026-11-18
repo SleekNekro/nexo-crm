@@ -28,7 +28,7 @@ with tempfile.TemporaryDirectory(prefix='nexo-installer-check-') as temp:
         raise RuntimeError('Server did not become ready')
     password=secrets.token_urlsafe(24)
     def login(password):
-        req=urllib.request.Request('http://localhost:8180/api/auth',data=json.dumps({'username':'developer','password':password}).encode(),headers={'Content-Type':'application/json','Origin':'http://localhost:8180'},method='POST')
+        req=urllib.request.Request('http://localhost:8180/api/auth',data=json.dumps({'action':'login','username':'developer','password':password}).encode(),headers={'Content-Type':'application/json','Origin':'http://localhost:8180'},method='POST')
         with urllib.request.urlopen(req,timeout=10) as response:
             assert response.status==200
             assert any('nexo_session=' in c for c in response.headers.get_all('Set-Cookie',[]))

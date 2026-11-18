@@ -153,6 +153,29 @@ async fn setup_action(
         let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
         let local = dir.join("local-server");
         let value = match action.as_str() {
+            "docker-download" => {
+                #[cfg(target_os = "macos")]
+                let result = std::process::Command::new("/usr/bin/open")
+                    .arg("https://www.docker.com/products/docker-desktop/")
+                    .spawn();
+                #[cfg(target_os = "windows")]
+                let result = std::process::Command::new(
+                    std::path::PathBuf::from(
+                        std::env::var_os("WINDIR").unwrap_or_else(|| "C:\\Windows".into()),
+                    )
+                    .join("explorer.exe"),
+                )
+                .arg("https://www.docker.com/products/docker-desktop/")
+                .spawn();
+                #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+                let result = std::process::Command::new("xdg-open")
+                    .arg("https://www.docker.com/products/docker-desktop/")
+                    .spawn();
+                result.map_err(|_| {
+                    "Abre docker.com/products/docker-desktop en tu navegador".to_string()
+                })?;
+                serde_json::json!({"opened":true})
+            }
             "status" => serde_json::to_value(local_server::status(&local)).unwrap(),
             "start" => {
                 let state =

@@ -32,6 +32,7 @@ el('install').onsubmit=event=>{
  el('password').value='';el('repeat').value='';perform('start',{password});
 };
 el('connect').onsubmit=event=>{event.preventDefault();perform('connect',{url:el('server').value.trim(),allowLocalHttp:el('http').checked});};
+el('docker-download').onclick=()=>perform('docker-download');
 el('check').onclick=()=>perform('status');el('open').onclick=()=>perform('open-local');
 el('stop').onclick=()=>{if(confirm('¿Detener el servidor? Se cerrarán las conexiones a este Nexo. Tus datos se conservarán.'))perform('stop');};
 perform('status');

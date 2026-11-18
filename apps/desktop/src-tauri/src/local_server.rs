@@ -234,7 +234,22 @@ pub fn status(dir: &Path) -> Status {
         message: message.into(),
     }
 }
+fn operation_lock(dir: &Path) -> Result<fs::File, String> {
+    fs::create_dir_all(dir).map_err(|_| failure())?;
+    let file = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(dir.join("operation.lock"))
+        .map_err(|_| failure())?;
+    file.try_lock().map_err(|_| {
+        "Otra ventana de Nexo está gestionando el servidor. Espera a que termine.".to_string()
+    })?;
+    Ok(file)
+}
 pub fn start(dir: &Path, password: &str, progress: impl Fn(&str)) -> Result<Status, String> {
+    let _operation = operation_lock(dir)?;
     if !status(dir).docker {
         return Err("Abre Docker Desktop y espera a que termine de arrancar.".into());
     }
@@ -297,6 +312,7 @@ pub fn start(dir: &Path, password: &str, progress: impl Fn(&str)) -> Result<Stat
     Ok(status(dir))
 }
 pub fn stop(dir: &Path) -> Result<Status, String> {
+    let _operation = operation_lock(dir)?;
     if dir.join(".env").exists() {
         compose(dir, &["stop"], None, 90)?;
     }
@@ -305,6 +321,15 @@ pub fn stop(dir: &Path) -> Result<Status, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn operations_cannot_overlap() {
+        let dir = std::env::temp_dir().join(format!("nexo-lock-test-{}", random().unwrap()));
+        let first = operation_lock(&dir).unwrap();
+        assert!(operation_lock(&dir).is_err());
+        drop(first);
+        drop(operation_lock(&dir).unwrap());
+        fs::remove_dir_all(dir).unwrap();
+    }
     #[test]
     fn secrets_are_random_hex() {
         let a = random().unwrap();
@@ -326,6 +351,6 @@ mod tests {
     fn provisioning_is_unprivileged_and_atomic() {
         assert!(SQL.starts_with("BEGIN;"));
         assert!(SQL.contains("NOSUPERUSER"));
-        assert!(SQL.ends_with("COMMIT;\n"));
+        assert!(SQL.trim_end().ends_with("COMMIT;"));
     }
 }
