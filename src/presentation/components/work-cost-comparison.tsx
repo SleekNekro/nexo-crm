@@ -1,7 +1,9 @@
+import { useMoney } from '../hooks/use-business-settings';
 import { compareWorkCost } from '../../domain/labor';
 import type { Data, Work } from '../../domain/model';
-import { money } from '../../domain/model';
+import {} from '../../domain/model';
 export default function WorkCostComparison({ data, work }: { data: Data; work: Work }) {
+  const money = useMoney();
   const b = compareWorkCost(data, work);
   return (
     <section className="card costcomparison">

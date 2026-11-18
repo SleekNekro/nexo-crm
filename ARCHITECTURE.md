@@ -4,7 +4,7 @@
 
 Nexo está orientado a pymes y busca adaptarse a distintos negocios manteniendo una interfaz sencilla. La demostración actual modela una empresa ficticia de construcción/revestimientos: las obras, mediciones y partes responden a ese ejemplo y no son requisitos de todos los sectores.
 
-Las funciones comerciales constituyen una base reutilizable. Las reglas y secciones específicas todavía se adaptan mediante código. El constructor de secciones modulares sin código es una evolución prevista, no una arquitectura de plugins ya disponible.
+Las funciones comerciales constituyen una base reutilizable. La configuración de campos, etapas, módulos existentes y reglas comerciales se guarda por empresa. Añadir nuevos tipos de sección o un motor de plugins sigue siendo una evolución prevista.
 
 ## Capas
 
@@ -48,3 +48,25 @@ La pasarela verifica el destino con una prueba firmada antes de permitir un camb
 - La demo usa HTTP exclusivamente en localhost. La publicación en Internet requiere HTTPS y revisión operativa.
 - No hay actualizador nativo, paquetes firmados de esta edición ni prueba certificada en todas las plataformas.
 - El código incluye pruebas automatizadas; eso no sustituye una auditoría ni valida por sí mismo cada dispositivo.
+
+## Importación e historial comercial
+
+`commercial-import.ts` analiza CSV, relaciona columnas y detecta coincidencias; `commercial-merge.ts` prepara la fusión y conserva instantáneas de documentos. Estas funciones del dominio no acceden a la base de datos.
+
+`/api/commercial-data` comprueba permisos y espacio, bloquea el estado y exige la versión de la vista previa antes de confirmar. Guarda entidades y auditoría en la misma transacción. `crm_commercial_data_audit` conserva las fichas originales y el resultado; no es un mecanismo automático de reversión.
+
+`/api/company-history` combina notas de empresa con datos comerciales autorizados. `crm_company_notes` referencia la empresa y conserva autor y fecha; la fusión reasigna estas notas y el guardado ordinario impide eliminar empresas que las tengan. Ambas tablas se inicializan por espacio; las notas se crean después de migrar las tablas de entidades.
+
+Los componentes `commercial-data-tools.tsx` y `company-history.tsx` presentan vistas previas e historial. La guía de uso y límites está en [docs/commercial-data.md](docs/commercial-data.md).
+
+## Configuración de negocio
+
+`crm_workspaces.settings` guarda una configuración JSON versionada junto a la identidad del espacio. `/api/business-settings` la valida y solo admite cambios del desarrollador. Comparte el bloqueo del estado comercial para comprobar referencias en uso y evitar que un guardado concurrente elimine un campo o fase que se acaba de utilizar.
+
+`business-settings.ts` define límites, dependencias y validación de campos y etapas. Los valores personalizados viven en `customFields` de empresas, contactos y tratos. `pipelinePhase` referencia una etapa configurada; `stage` conserva el significado comercial estable utilizado por pedidos y estadísticas.
+
+Los permisos incorporan los módulos activos. La ocultación de interfaz no sustituye las restricciones del servidor. Las reglas de envío reciben la configuración tanto desde el guardado comercial como desde la reconciliación SMTP. Las nuevas instalaciones se inicializan vacías; cargar ejemplos es una acción explícita del asistente.
+
+La moneda pertenece a la marca y queda congelada en la revisión. La interfaz utiliza un hook por contexto de empresa, sin variables globales de moneda compartidas entre peticiones.
+
+Excel se analiza bajo demanda en el navegador con ExcelJS; fflate comprueba los límites del ZIP antes de cargarlo. No se ejecutan fórmulas y el servidor vuelve a validar el CSV normalizado y sus filas antes de escribir. La guía de funciones y límites está en [docs/business-configuration.md](docs/business-configuration.md).

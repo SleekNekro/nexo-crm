@@ -78,7 +78,7 @@ export async function currentUser(touch = true, globalOnly = false) {
       access_until: w.access_until,
     }),
     workspaceId: w.id,
-    workspace: { id: w.id, brand: w.brand, version: w.version },
+    workspace: { id: w.id, brand: w.brand, version: w.version, settings: w.settings },
     platformDeveloper: account.role === 'developer',
   };
 }

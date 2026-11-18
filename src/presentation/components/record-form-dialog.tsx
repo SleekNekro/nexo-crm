@@ -1,4 +1,6 @@
 'use client';
+import Module, { useViewAccess } from './module';
+import { CustomFieldsEditor } from './custom-fields';
 import {
   activityKinds,
   activityPriorities,
@@ -22,6 +24,7 @@ type Props = {
   error: string;
 };
 export default function RecordFormDialog({ controller, data, profile, busy, error }: Props) {
+  const canView = useViewAccess();
   const {
     modal,
     editId,
@@ -228,22 +231,24 @@ export default function RecordFormDialog({ controller, data, profile, busy, erro
             {modal === 'Trato' && (
               <details className="extra-fields" open={!!editId}>
                 <summary>Más datos del trato</summary>
-                <label>
-                  Contacto principal
-                  <select
-                    value={form.contactId || ''}
-                    onChange={(e) => setForm({ ...form, contactId: e.target.value })}
-                  >
-                    <option value="">Sin asignar</option>
-                    {data.contacts
-                      .filter((c) => c.companyId === form.companyId)
-                      .map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                  </select>
-                </label>
+                <Module name="Contactos">
+                  <label>
+                    Contacto principal
+                    <select
+                      value={form.contactId || ''}
+                      onChange={(e) => setForm({ ...form, contactId: e.target.value })}
+                    >
+                      <option value="">Sin asignar</option>
+                      {data.contacts
+                        .filter((c) => c.companyId === form.companyId)
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                </Module>
                 <label>
                   Responsable del trato
                   <AccountSelect
@@ -358,6 +363,15 @@ export default function RecordFormDialog({ controller, data, profile, busy, erro
                 </details>
               </>
             )}
+            {['Empresa', 'Contacto', 'Trato'].includes(modal) && (
+              <CustomFieldsEditor
+                entity={
+                  modal === 'Empresa' ? 'companies' : modal === 'Contacto' ? 'contacts' : 'deals'
+                }
+                form={form}
+                onChange={setForm}
+              />
+            )}
             <div className="record-form-footer">
               <button type="button" className="full" disabled={busy} onClick={closeModal}>
                 Cancelar
@@ -380,7 +394,9 @@ export default function RecordFormDialog({ controller, data, profile, busy, erro
                     : modal === 'Presupuesto'
                       ? 'Continuar con las partidas'
                       : modal === 'Trato'
-                        ? 'Crear trato y preparar presupuesto'
+                        ? canView('Presupuestos')
+                          ? 'Crear trato y preparar presupuesto'
+                          : 'Crear trato'
                         : 'Crear ' + modal.toLowerCase()}
               </PermissionButton>
             </div>

@@ -1,8 +1,10 @@
 'use client';
+import { useMoney } from '../hooks/use-business-settings';
+import { useBusinessSettings } from '../hooks/use-business-settings';
 import { useEffect, useRef, useState } from 'react';
 import { Mail } from 'lucide-react';
 import type { Data, Deal } from '../../domain/model';
-import { money, total } from '../../domain/model';
+import { total } from '../../domain/model';
 import { suggestedFollowUp } from '../../domain/quote-workflow';
 import { localDay } from './activity-list';
 import { FormDialog } from './dialog';
@@ -34,6 +36,8 @@ export default function QuoteEmail({
   onClose: () => void;
   onPrint: () => void;
 }) {
+  const money = useMoney();
+  const businessSettings = useBusinessSettings();
   const [preview, setPreview] = useState(false);
   const [account, setAccount] = useState<any>(null),
     [loaded, setLoaded] = useState(false),
@@ -52,7 +56,9 @@ export default function QuoteEmail({
     [body, setBody] = useState(
       'Hola,\n\nTe adjunto nuestro presupuesto. Quedo a tu disposición para cualquier consulta.\n\nUn saludo,',
     ),
-    [due, setDue] = useState(() => suggestedFollowUp(localDay()));
+    [due, setDue] = useState(() =>
+      suggestedFollowUp(localDay(), businessSettings.automation.followUpDays),
+    );
   const signatureAdded = useRef(false),
     attempt = useRef<{ id: string; payload: any } | null>(null);
   async function load() {
@@ -220,18 +226,20 @@ export default function QuoteEmail({
                 onChange={(e) => setBody(e.target.value)}
               />
             </label>
-            {!revision.sentAt && (
-              <label>
-                Próximo seguimiento
-                <input
-                  type="date"
-                  required
-                  min={localDay()}
-                  value={due}
-                  onChange={(e) => setDue(e.target.value)}
-                />
-              </label>
-            )}
+            {!revision.sentAt &&
+              businessSettings.automation.followUp &&
+              businessSettings.modules.includes('Actividades') && (
+                <label>
+                  Próximo seguimiento
+                  <input
+                    type="date"
+                    required
+                    min={localDay()}
+                    value={due}
+                    onChange={(e) => setDue(e.target.value)}
+                  />
+                </label>
+              )}
             <button type="submit">
               {busy
                 ? 'Enviando…'

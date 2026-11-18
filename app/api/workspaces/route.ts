@@ -77,6 +77,8 @@ export async function POST(req: Request) {
       return json({ error: 'Recarga la página: el espacio ha cambiado' }, 409);
     if (!u) return json({ error: 'El espacio ha cambiado. Recarga la página.' }, 403);
     if (b.action === 'brand') {
+      if ((b.brand?.currency || 'EUR') !== (u.workspace?.brand.currency || 'EUR'))
+        return json({ error: 'Cambia la moneda desde Configuración del negocio' }, 400);
       if (!u.platformDeveloper)
         return json(
           { error: 'Solo Desarrollador puede modificar la identidad de las empresas' },

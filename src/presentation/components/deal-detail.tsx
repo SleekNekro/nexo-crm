@@ -1,4 +1,9 @@
 'use client';
+import Module, { useViewAccess } from './module';
+import { CustomFieldsSummary } from './custom-fields';
+import { useMoney } from '../hooks/use-business-settings';
+import { useBusinessSettings } from '../hooks/use-business-settings';
+import { phaseFor } from '../../domain/business-settings';
 import QuoteRevisionActions from './quote-revision-actions';
 import { matchingDraftRevision } from '../../domain/quote-workflow';
 import type { WorkspaceBrand } from '../../domain/workspace';
@@ -9,7 +14,7 @@ import { PermissionForm, PermissionButton, PermissionSelect } from './permission
 import { recordId } from '../utils/record-id';
 import { Pencil, Plus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { Data, Deal, Task, money, stages, subtotal, total } from '../../domain/model';
+import { Data, Deal, Task, stages, subtotal, total } from '../../domain/model';
 import { dueLabel } from './activity-list';
 import { useDialog } from './dialog';
 import ProductCatalogue from './product-catalogue';
@@ -52,6 +57,9 @@ export default function DealDetail({
   onComplete,
   onCompany,
 }: Props) {
+  const money = useMoney();
+  const settings = useBusinessSettings();
+  const canView = useViewAccess();
   const lineFormRef = useRef<HTMLFormElement>(null);
   const manualRef = useRef<HTMLDetailsElement>(null);
   const quoteActionsRef = useRef<HTMLElement>(null);
@@ -113,6 +121,13 @@ export default function DealDetail({
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
+  useEffect(() => {
+    if (
+      (tab === 'Presupuesto' && !canView('Presupuestos')) ||
+      (tab === 'Actividades' && !canView('Actividades'))
+    )
+      setTab('Resumen');
+  }, [settings, tab]);
   const company = data.companies.find((c) => c.id === d.companyId),
     contact = data.contacts.find((c) => c.id === d.contactId);
   const activities = data.tasks
@@ -184,7 +199,9 @@ export default function DealDetail({
           {company?.name}
         </button>
         <div className="dealheadline">
-          <span className={'badge s' + stages.indexOf(d.stage)}>{d.stage}</span>
+          <span className={'badge s' + stages.indexOf(d.stage)}>
+            {phaseFor(d, settings)?.label || d.stage}
+          </span>
           <strong>
             {money(total(d.acceptedRevisionId ? currentRevision?.lines || d.lines : d.lines))}
             <small>
@@ -193,17 +210,25 @@ export default function DealDetail({
           </strong>
         </div>
         <div className="dealtabs" aria-label="Secciones del trato">
-          {['Resumen', 'Actividades', 'Presupuesto', 'Notas'].map((t) => (
-            <button
-              aria-pressed={tab === t}
-              key={t}
-              onClick={() => switchTab(t)}
-              className={tab === t ? 'chosen' : ''}
-            >
-              {t}
-              {t === 'Actividades' && <b>{pending}</b>}
-            </button>
-          ))}
+          {['Resumen', 'Actividades', 'Presupuesto', 'Notas']
+            .filter((t) =>
+              t === 'Presupuesto'
+                ? canView('Presupuestos')
+                : t === 'Actividades'
+                  ? canView('Actividades')
+                  : true,
+            )
+            .map((t) => (
+              <button
+                aria-pressed={tab === t}
+                key={t}
+                onClick={() => switchTab(t)}
+                className={tab === t ? 'chosen' : ''}
+              >
+                {t}
+                {t === 'Actividades' && <b>{pending}</b>}
+              </button>
+            ))}
         </div>
         {dirty && (
           <p className="draftnotice" role="status">
@@ -217,29 +242,31 @@ export default function DealDetail({
         )}
         {tab === 'Resumen' && (
           <div>
-            <div className="deal-next-step">
-              <strong>
-                {d.acceptedRevisionId
-                  ? 'Presupuesto aceptado · pedido generado'
-                  : currentRevision?.sentAt
-                    ? 'Esperando respuesta del cliente'
-                    : d.lines.length
-                      ? 'Presupuesto listo para revisar'
-                      : 'Prepara el presupuesto del trato'}
-              </strong>
-              <button className="primary" onClick={() => switchTab('Presupuesto')}>
-                {d.acceptedRevisionId
-                  ? 'Ver presupuesto aceptado'
-                  : currentRevision?.sentAt
-                    ? 'Ver PDF / registrar aceptación'
-                    : 'Preparar presupuesto'}
-              </button>
-              <p>
-                {currentRevision?.sentAt && !d.acceptedRevisionId
-                  ? 'El seguimiento está en Actividades.'
-                  : 'El presupuesto y sus acciones están juntos en la misma pestaña.'}
-              </p>
-            </div>
+            <Module name="Presupuestos">
+              <div className="deal-next-step">
+                <strong>
+                  {d.acceptedRevisionId
+                    ? 'Presupuesto aceptado · pedido generado'
+                    : currentRevision?.sentAt
+                      ? 'Esperando respuesta del cliente'
+                      : d.lines.length
+                        ? 'Presupuesto listo para revisar'
+                        : 'Prepara el presupuesto del trato'}
+                </strong>
+                <button className="primary" onClick={() => switchTab('Presupuesto')}>
+                  {d.acceptedRevisionId
+                    ? 'Ver presupuesto aceptado'
+                    : currentRevision?.sentAt
+                      ? 'Ver PDF / registrar aceptación'
+                      : 'Preparar presupuesto'}
+                </button>
+                <p>
+                  {currentRevision?.sentAt && !d.acceptedRevisionId
+                    ? 'El seguimiento está en Actividades.'
+                    : 'El presupuesto y sus acciones están juntos en la misma pestaña.'}
+                </p>
+              </div>
+            </Module>
             <div className="sectionhead">
               <h3>Datos del trato</h3>
               <PermissionButton action="deals" disabled={busy} onClick={onEdit}>
@@ -274,22 +301,29 @@ export default function DealDetail({
               <PermissionSelect
                 action="deals"
                 disabled={busy}
-                value={d.stage}
+                value={phaseFor(d, settings)?.id}
                 onChange={(e) => onStage(e.target.value)}
               >
-                {stages.map((s) => (
-                  <option key={s}>{s}</option>
+                {settings.phases.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                  </option>
                 ))}
               </PermissionSelect>
             </label>
             {d.stage === 'Perdido' && <p>Motivo: {d.reason}</p>}
+            <CustomFieldsSummary entity="deals" values={d.customFields} />
             <div className="dealsummary">
-              <button onClick={() => switchTab('Actividades')}>
-                <strong>{pending}</strong> actividades pendientes
-              </button>
-              <button onClick={() => switchTab('Presupuesto')}>
-                <strong>{d.versions.length}</strong> revisiones guardadas
-              </button>
+              <Module name="Actividades">
+                <button onClick={() => switchTab('Actividades')}>
+                  <strong>{pending}</strong> actividades pendientes
+                </button>
+              </Module>
+              <Module name="Presupuestos">
+                <button onClick={() => switchTab('Presupuesto')}>
+                  <strong>{d.versions.length}</strong> revisiones guardadas
+                </button>
+              </Module>
             </div>
             <p className="muted">
               Cerrar el trato cancela los seguimientos pendientes; no los marca como realizados. Si
@@ -298,7 +332,7 @@ export default function DealDetail({
             </p>
           </div>
         )}
-        {tab === 'Actividades' && (
+        {tab === 'Actividades' && canView('Actividades') && (
           <div>
             <div className="sectionhead">
               <h3>Actividades del trato</h3>
@@ -334,7 +368,7 @@ export default function DealDetail({
             {!activities.length && <p className="empty">Programa la siguiente acción.</p>}
           </div>
         )}
-        {tab === 'Presupuesto' && (
+        {tab === 'Presupuesto' && canView('Presupuestos') && (
           <div>
             <section className="quote-workflow" ref={quoteActionsRef}>
               <h3>{d.acceptedRevisionId ? 'Presupuesto aceptado' : 'Presupuesto actual'}</h3>
@@ -467,44 +501,47 @@ export default function DealDetail({
               </p>
             )}
             {!closed && (
-              <details
-                className="catalogue-picker"
-                open={catalogueOpen}
-                onToggle={(e) => setCatalogueOpen(e.currentTarget.open)}
-              >
-                <summary>Añadir productos del catálogo</summary>
-                <p>
-                  Busca, selecciona y ajusta las cantidades. Puedes añadir varios productos juntos.
-                </p>
-                <ProductCatalogue
-                  disabled={busy || lineDirty || lineIndex !== null}
-                  onAdd={async (items) => {
-                    if (items.some(({ qty }) => !Number.isSafeInteger(qty) || qty < 1))
-                      return false;
-                    const next = structuredClone(data);
-                    const target = next.deals.find((deal) => deal.id === d.id)!;
-                    target.lines.push(
-                      ...items.map(({ product, qty }) => ({
-                        description: product.name,
-                        unit: '',
-                        qty,
-                        price: product.price,
-                        discount: 0,
-                        tax: 21,
-                      })),
-                    );
-                    const saved = !!(await onSave(next));
-                    if (saved) {
-                      setCatalogueOpen(false);
-                      quoteActionsRef.current?.scrollIntoView({
-                        block: 'start',
-                        behavior: 'smooth',
-                      });
-                    }
-                    return saved;
-                  }}
-                />
-              </details>
+              <Module name="Catálogo">
+                <details
+                  className="catalogue-picker"
+                  open={catalogueOpen}
+                  onToggle={(e) => setCatalogueOpen(e.currentTarget.open)}
+                >
+                  <summary>Añadir productos del catálogo</summary>
+                  <p>
+                    Busca, selecciona y ajusta las cantidades. Puedes añadir varios productos
+                    juntos.
+                  </p>
+                  <ProductCatalogue
+                    disabled={busy || lineDirty || lineIndex !== null}
+                    onAdd={async (items) => {
+                      if (items.some(({ qty }) => !Number.isSafeInteger(qty) || qty < 1))
+                        return false;
+                      const next = structuredClone(data);
+                      const target = next.deals.find((deal) => deal.id === d.id)!;
+                      target.lines.push(
+                        ...items.map(({ product, qty }) => ({
+                          description: product.name,
+                          unit: '',
+                          qty,
+                          price: product.price,
+                          discount: 0,
+                          tax: 21,
+                        })),
+                      );
+                      const saved = !!(await onSave(next));
+                      if (saved) {
+                        setCatalogueOpen(false);
+                        quoteActionsRef.current?.scrollIntoView({
+                          block: 'start',
+                          behavior: 'smooth',
+                        });
+                      }
+                      return saved;
+                    }}
+                  />
+                </details>
+              </Module>
             )}
             {!closed && (
               <details

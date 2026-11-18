@@ -20,9 +20,12 @@ import {
   validPassword,
 } from '../../../src/infrastructure/security/password';
 import { consumeFactor } from '../../../src/infrastructure/security/second-factor';
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    return json({ user: preview ? null : await currentUser(), preview });
+    return json({
+      user: preview ? null : await currentUser(req.headers.get('X-Session-Probe') !== '1'),
+      preview,
+    });
   } catch {
     return json({ error: 'No se puede conectar con el servidor' }, 503);
   }

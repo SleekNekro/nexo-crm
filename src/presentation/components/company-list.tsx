@@ -1,4 +1,8 @@
 'use client';
+import StageLabel from './stage-label';
+import Module, { useViewAccess } from './module';
+import { useMoney } from '../hooks/use-business-settings';
+import { companyPending } from '../../domain/company-pending';
 import ActivityPriorityBadge from './activity-priority-badge';
 import { compareActivities } from '../../domain/activity-priority';
 import { useState } from 'react';
@@ -6,7 +10,7 @@ import { companyStatus, companyStatuses } from '../../domain/company-status';
 import { PermissionButton } from './permission-controls';
 import { Building2, ChevronRight } from 'lucide-react';
 import type { Company, Data, Deal } from '../../domain/model';
-import { money, stages, subtotal } from '../../domain/model';
+import { stages, subtotal } from '../../domain/model';
 import { dueLabel } from './activity-list';
 type Props = {
   busy: boolean;
@@ -28,6 +32,7 @@ export default function CompanyList({
   onDeal,
   onContact,
 }: Props) {
+  const money = useMoney();
   const [statusFilter, setStatusFilter] = useState('Todas');
   const shown = companies.filter(
     (c) => statusFilter === 'Todas' || companyStatus(c, data) === statusFilter,
@@ -61,6 +66,7 @@ export default function CompanyList({
               .filter((t) => ids.has(t.dealId) && !t.done && !t.cancelled)
               .sort(compareActivities),
             quotes = related;
+          const pending = companyPending(related, data.tasks);
           return (
             <details className="companybranch" name="company-list" key={c.id}>
               <summary>
@@ -85,6 +91,15 @@ export default function CompanyList({
                 <span className="branchcounts">
                   {contacts.length} contactos · {related.length} tratos
                 </span>
+                <span className="company-pending-summary">
+                  {pending.activities > 0 && (
+                    <span>
+                      {pending.activities} actividades
+                      {pending.overdue > 0 ? ` · ${pending.overdue} vencidas` : ''}
+                    </span>
+                  )}
+                  {pending.quotes > 0 && <span>{pending.quotes} presupuestos pendientes</span>}
+                </span>
                 <span className="branchowner">{c.owner}</span>
               </summary>
               <div className="branchbody">
@@ -94,14 +109,16 @@ export default function CompanyList({
                     {c.phone && <a href={'tel:' + c.phone}>{c.phone}</a>}
                   </div>
                   <div className="companyactions">
-                    <PermissionButton
-                      action="deals"
-                      className="primary"
-                      disabled={busy}
-                      onClick={() => void onCreateQuote(c.id)}
-                    >
-                      Crear presupuesto
-                    </PermissionButton>
+                    <Module name="Presupuestos">
+                      <PermissionButton
+                        action="deals"
+                        className="primary"
+                        disabled={busy}
+                        onClick={() => void onCreateQuote(c.id)}
+                      >
+                        Crear presupuesto
+                      </PermissionButton>
+                    </Module>
                     <button onClick={() => onCompany(c.id)}>Abrir ficha completa</button>
                   </div>
                 </div>
@@ -136,7 +153,9 @@ export default function CompanyList({
                           {d.title}
                         </button>
                         <div>
-                          <span className={'badge s' + stages.indexOf(d.stage)}>{d.stage}</span>
+                          <span className={'badge s' + stages.indexOf(d.stage)}>
+                            <StageLabel deal={d} />
+                          </span>
                           <span>{money(subtotal(d.lines))} sin IVA</span>
                         </div>
                       </div>

@@ -1,4 +1,5 @@
 'use client';
+import { useBusinessSettings } from './use-business-settings';
 import { createCompanyQuote } from '../../domain/company-quote';
 import type { ActivityPriority } from '../../domain/activity-priority';
 import { companyStatus, type CompanyStatus } from '../../domain/company-status';
@@ -36,6 +37,15 @@ export function useRecordForms({
   onOpenQuote,
   onOpenCompany,
 }: Props) {
+  const settings = useBusinessSettings();
+  const flattenCustom = (values?: Record<string, string>) =>
+    Object.fromEntries(Object.entries(values || {}).map(([k, v]) => ['custom:' + k, v]));
+  const customValues = (entity: 'companies' | 'contacts' | 'deals') =>
+    Object.fromEntries(
+      settings.fields
+        .filter((f) => f.entity === entity)
+        .map((f) => [f.id, form['custom:' + f.id] || '']),
+    );
   const [modal, setModal] = useState(''),
     [editId, setEditId] = useState(''),
     [form, setForm] = useState<Record<string, string>>({}),
@@ -111,7 +121,12 @@ export function useRecordForms({
     if (!focusedCompany) return;
     setFormDirty(false);
     setEditId(focusedCompany.id);
-    setForm({ ...focusedCompany, status: companyStatus(focusedCompany, data!) });
+    const { customFields, ...base } = focusedCompany;
+    setForm({
+      ...base,
+      ...flattenCustom(customFields),
+      status: companyStatus(focusedCompany, data!),
+    });
     setError('');
     setModal('Empresa');
   }
@@ -122,7 +137,8 @@ export function useRecordForms({
     if (!c) return;
     setFormDirty(false);
     setEditId(id);
-    setForm({ ...c });
+    const { customFields, ...base } = c;
+    setForm({ ...base, ...flattenCustom(customFields) });
     setError('');
     setModal('Contacto');
   }
@@ -132,6 +148,7 @@ export function useRecordForms({
     setEditId(sel.id);
     setForm({
       name: sel.title,
+      ...flattenCustom(sel.customFields),
       companyId: sel.companyId,
       owner: sel.owner,
       contactId: sel.contactId || '',
@@ -197,6 +214,7 @@ export function useRecordForms({
     let createdCompanyId = '';
     if (modal === 'Empresa') {
       const fields = {
+        customFields: customValues('companies'),
         name: form.name.trim(),
         status: (form.status || 'Posible cliente') as CompanyStatus,
         sector: (form.sector || '').trim(),
@@ -229,6 +247,7 @@ export function useRecordForms({
     }
     if (modal === 'Contacto') {
       const fields = {
+        customFields: customValues('contacts'),
         name: form.name.trim(),
         email: (form.email || '').trim(),
         phone: (form.phone || '').trim(),
@@ -253,6 +272,7 @@ export function useRecordForms({
       }
       const fields = {
         title: form.name.trim(),
+        customFields: customValues('deals'),
         companyId: c.id,
         owner: profile === 'Dirección' ? form.owner || c.owner : c.owner,
         contactId: form.contactId || '',
@@ -313,7 +333,9 @@ export function useRecordForms({
         editId
           ? 'Cambios guardados.'
           : modal === 'Trato'
-            ? 'Trato creado. Añade las partidas del presupuesto.'
+            ? settings.modules.includes('Presupuestos')
+              ? 'Trato creado. Añade las partidas del presupuesto.'
+              : 'Trato creado.'
             : modal === 'Actividad'
               ? 'Actividad programada para el ' +
                 new Date(form.due + 'T12:00:00').toLocaleDateString('es-ES') +
@@ -322,7 +344,7 @@ export function useRecordForms({
                 ? 'Empresa creada correctamente.'
                 : 'Contacto creado correctamente.',
       );
-      if (createdDealId) onOpenQuote(createdDealId);
+      if (createdDealId && settings.modules.includes('Presupuestos')) onOpenQuote(createdDealId);
       if (createdCompanyId) onOpenCompany(createdCompanyId);
     }
   }

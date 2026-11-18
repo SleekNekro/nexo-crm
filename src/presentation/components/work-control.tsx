@@ -1,10 +1,11 @@
 'use client';
+import { useMoney } from '../hooks/use-business-settings';
 import { photoUrl } from '../utils/workspace-context';
 import { PermissionForm, PermissionButton } from './permission-controls';
 import { workProgress } from '../../domain/progress';
 import { useEffect, useState } from 'react';
 import type { Data, Work, SupervisionEntry } from '../../domain/model';
-import { money } from '../../domain/model';
+import {} from '../../domain/model';
 import { canReview, workCosts } from '../../domain/labor';
 import { saveWork } from '../../domain/actions';
 import { workBudget } from '../../domain/work-control';
@@ -22,6 +23,7 @@ export function WorkControlSummary({
   work: Work;
   onTab: (tab: string) => void;
 }) {
+  const money = useMoney();
   const cost = workCosts(data, work.id),
     budget = workBudget(data, work),
     progress = workProgress(data, work.id);
@@ -258,6 +260,7 @@ export default function Supervision({
   onSave: (data: Data) => Promise<boolean | undefined>;
   onDirty: (dirty: boolean) => void;
 }) {
+  const money = useMoney();
   const [draft, setDraft] = useState<SupervisionEntry | null>(null),
     [error, setError] = useState('');
   useEffect(() => {

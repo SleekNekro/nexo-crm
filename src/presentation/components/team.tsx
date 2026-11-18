@@ -1,4 +1,5 @@
 'use client';
+import { useMoney } from '../hooks/use-business-settings';
 import { useCanAction, PermissionForm, PermissionButton } from './permission-controls';
 import { recordId } from '../utils/record-id';
 import { useEffect, useState } from 'react';
@@ -6,7 +7,7 @@ import type { Identity } from '../../application/access';
 import TeamUsers from './team-users';
 import { archiveWorker, removeWorker, saveWorker } from '../../domain/labor';
 import type { Data, Worker } from '../../domain/model';
-import { money } from '../../domain/model';
+import {} from '../../domain/model';
 import { localDay } from './activity-list';
 import { FormDialog } from './dialog';
 type Account = {
@@ -33,6 +34,7 @@ type Props = {
   onWork: (id: string) => void;
 };
 export default function Team({ user, data, busy, onSave, onDirty, onWork }: Props) {
+  const money = useMoney();
   const [accounts, setAccounts] = useState<Account[]>([]),
     [error, setError] = useState(''),
     [notice, setNotice] = useState(''),

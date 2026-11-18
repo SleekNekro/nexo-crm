@@ -39,9 +39,9 @@ export function matchingDraftRevision(data: Data, deal: Deal, brand: WorkspaceBr
     : undefined;
 }
 /** Three weekdays; no external holiday calendar. User can edit before registering the send. */
-export function suggestedFollowUp(day: string) {
+export function suggestedFollowUp(day: string, days = 3) {
   const date = new Date(day + 'T12:00:00Z');
-  let left = 3;
+  let left = Math.max(0, Math.min(90, days));
   while (left) {
     date.setUTCDate(date.getUTCDate() + 1);
     if (![0, 6].includes(date.getUTCDay())) left--;

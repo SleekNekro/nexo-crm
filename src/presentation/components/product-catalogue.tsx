@@ -1,8 +1,9 @@
 'use client';
+import { useMoney } from '../hooks/use-business-settings';
 import { PermissionButton, useCanAction } from './permission-controls';
 import { useEffect, useState } from 'react';
 import type { Product } from '../../domain/product';
-import { money } from '../../domain/model';
+import {} from '../../domain/model';
 export default function ProductCatalogue({
   onSelect,
   onAdd,
@@ -12,6 +13,7 @@ export default function ProductCatalogue({
   onAdd?: (items: { product: Product; qty: number }[]) => Promise<boolean>;
   disabled?: boolean;
 }) {
+  const money = useMoney();
   const canMaintain = useCanAction('products');
   const [editing, setEditing] = useState<Product | null>(null),
     [saving, setSaving] = useState(false),

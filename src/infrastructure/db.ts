@@ -1,3 +1,5 @@
+import { companyHistorySchema } from './company-history';
+import { commercialDataAuditSchema } from './commercial-data-audit';
 import { Pool } from 'pg';
 import { quoteMailSchema } from '../application/send-quote';
 import { reminderSchema } from '../application/activity-reminders';
@@ -33,13 +35,17 @@ export function initWorkspaceData(w: Pick<WorkspaceRecord, 'id' | 'schema_name'>
       await p.query(quoteMailSchema);
       await p.query(reminderSchema);
       await p.query(workAuditSchema);
-      await initProducts(p, w.id === 'nexo');
-      await migrateEntities(
-        p,
-        w.id === 'nexo'
-          ? seed
-          : () => ({ companies: [], contacts: [], deals: [], tasks: [], orders: [], notes: [] }),
-      );
+      await p.query(commercialDataAuditSchema);
+      await initProducts(p, false);
+      await migrateEntities(p, () => ({
+        companies: [],
+        contacts: [],
+        deals: [],
+        tasks: [],
+        orders: [],
+        notes: [],
+      }));
+      await p.query(companyHistorySchema);
     })().catch((e) => {
       initialized.delete(w.id);
       throw e;

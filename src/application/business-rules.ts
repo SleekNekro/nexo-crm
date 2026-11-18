@@ -1,5 +1,10 @@
+import { defaultSettings, type BusinessSettings } from '../domain/business-settings.ts';
 import { validActivityPriority } from '../domain/activity-priority.ts';
-import { companyStatuses, activateCompaniesOnWin } from '../domain/company-status.ts';
+import {
+  companyStatus,
+  companyStatuses,
+  activateCompaniesOnWin,
+} from '../domain/company-status.ts';
 import { companyRemoval } from '../domain/company-removal.ts';
 import { reconcileWorkDates } from '../domain/work-dates.ts';
 import { validSchedule } from '../domain/commercial-followup.ts';
@@ -227,8 +232,13 @@ export function reconcileCommercialChange(
   input: Data,
   newId: () => string,
   date: string,
+  settings: BusinessSettings = defaultSettings,
 ): Data {
   let next = structuredClone(input);
+  if (!settings.automation.activateOnWin)
+    for (const c of next.companies)
+      if (c.status === undefined)
+        c.status = companyStatus(before.companies.find((old) => old.id === c.id) || c, before);
   for (const deal of input.deals) {
     for (const revision of deal.versions) {
       const previous = before.deals
@@ -254,13 +264,33 @@ export function reconcileCommercialChange(
         revision.sentAt,
         revision.followUp || '',
         () => generated[0]?.id || newId(),
+        {
+          ...settings.automation,
+          followUp: settings.automation.followUp && settings.modules.includes('Actividades'),
+        },
       );
     }
   }
   for (const deal of next.deals) {
     const old = before.deals.find((d) => d.id === deal.id);
     if (old?.stage !== deal.stage)
-      next = changeStage(next, deal.id, deal.stage, newId, date, deal.reason);
+      next = changeStage(
+        next,
+        deal.id,
+        deal.stage,
+        newId,
+        date,
+        deal.reason,
+        settings.modules.includes('Pedidos'),
+      );
   }
-  return reconcileWorkDates(before, activateCompaniesOnWin(before, next), date);
+  if (!settings.modules.includes('Actividades'))
+    next.tasks = next.tasks.filter(
+      (t) => before.tasks.some((old) => old.id === t.id) || t.kind !== 'Recepción',
+    );
+  return reconcileWorkDates(
+    before,
+    settings.automation.activateOnWin ? activateCompaniesOnWin(before, next) : next,
+    date,
+  );
 }

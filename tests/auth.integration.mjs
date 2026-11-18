@@ -1,3 +1,5 @@
+import { seed } from '../src/domain/model.ts';
+import { readFileSync } from 'node:fs';
 import { createCompanyQuote } from '../src/domain/company-quote.ts';
 import { revisionFollowUp } from '../src/domain/quote-workflow.ts';
 import { markQuoteSent, completeTask, changeStage } from '../src/domain/actions.ts';
@@ -81,6 +83,17 @@ assert.equal((await call('/api/data', { cookie: old })).status, 401);
 const initialCommercialCookie = await create('test.commercial', 'commercial', 'Alex');
 let state = (await call('/api/data', { cookie: a.cookie })).data;
 assert.equal(state.storage, 'postgres');
+// Installations now start empty; this suite explicitly loads its fictional fixtures.
+state.data = seed();
+for (const product of JSON.parse(
+  readFileSync(
+    new URL('../src/infrastructure/catalogue/demo-products.json', import.meta.url),
+    'utf8',
+  ),
+)) {
+  const added = await call('/api/products', { cookie: a.cookie, body: product });
+  assert.equal(added.status, 201, JSON.stringify(added.data));
+}
 state.data.workers = [
   { id: 'wa', name: 'Prueba A', kind: 'Propio', company: '', rate: 23 },
   { id: 'wb', name: 'Prueba B', kind: 'Propio', company: '', rate: 30 },

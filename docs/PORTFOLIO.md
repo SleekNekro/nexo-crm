@@ -4,7 +4,7 @@
 
 La gestión comercial y el seguimiento de ejecución suelen repartirse entre contactos, hojas de cálculo y documentos. El objetivo de Nexo es reunir el ciclo completo sin obligar a que cada venta termine en una obra, y mantener una interfaz comprensible para personas con poca experiencia digital.
 
-La muestra utiliza una empresa ficticia de construcción y revestimientos. El objetivo de producto es ofrecer a pymes de distintos sectores una herramienta configurable y sencilla; la adaptación sin código mediante secciones modulares está prevista, pero todavía no está implementada.
+La muestra utiliza una empresa ficticia de construcción y revestimientos. El objetivo de producto es ofrecer a pymes de distintos sectores una herramienta configurable y sencilla; ya permite configurar campos, etapas, módulos existentes y tres reglas comerciales desde la interfaz. Crear secciones completamente nuevas sin código sigue pendiente.
 
 ## Decisiones destacadas
 

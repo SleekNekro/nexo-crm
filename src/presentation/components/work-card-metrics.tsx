@@ -1,9 +1,11 @@
+import { useMoney } from '../hooks/use-business-settings';
 import type { Data, Work } from '../../domain/model';
-import { money } from '../../domain/model';
+import {} from '../../domain/model';
 import { compareWorkCost, workCosts } from '../../domain/labor';
 import { workProgress } from '../../domain/progress';
 
 export default function WorkCardMetrics({ data, work }: { data: Data; work: Work }) {
+  const money = useMoney();
   const progress = workProgress(data, work.id),
     cost = workCosts(data, work.id),
     comparison = compareWorkCost(data, work);

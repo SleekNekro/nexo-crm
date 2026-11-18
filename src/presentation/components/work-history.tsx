@@ -1,6 +1,7 @@
 'use client';
+import { useMoney } from '../hooks/use-business-settings';
 import { useEffect, useState } from 'react';
-import { money } from '../../domain/model';
+import {} from '../../domain/model';
 type Event = {
   id: string;
   kind: string;
@@ -24,13 +25,15 @@ const labels: Record<string, string> = {
   quantity: 'Cantidad',
   unit: 'Unidad',
 };
-const display = (key: string, value: unknown) =>
-  value == null
-    ? 'Sin definir'
-    : ['amount', 'rate'].includes(key) && typeof value === 'number'
-      ? money(value)
-      : String(value);
 export default function WorkHistory({ workId }: { workId: string }) {
+  const money = useMoney();
+  const display = (key: string, value: unknown) =>
+    value == null
+      ? 'Sin definir'
+      : ['amount', 'rate'].includes(key) && typeof value === 'number'
+        ? money(value)
+        : String(value);
+
   const [events, setEvents] = useState<Event[]>([]),
     [more, setMore] = useState(false),
     [error, setError] = useState(''),

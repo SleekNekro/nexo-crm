@@ -1,4 +1,5 @@
 export type WorkspaceBrand = {
+  currency?: 'EUR' | 'USD' | 'GBP';
   name: string;
   logo: string;
   logoLayout?: 'page-wordmark';
@@ -13,12 +14,24 @@ export type WorkspaceBrand = {
   website: string;
   paymentTerms: string;
 };
-export type WorkspaceInfo = { id: string; brand: WorkspaceBrand; version: number };
+export type WorkspaceInfo = {
+  id: string;
+  brand: WorkspaceBrand;
+  version: number;
+  settings?: import('./business-settings').BusinessSettings;
+};
 export const nexoBrand: WorkspaceBrand = {
-  name: 'NEXO', logo: '/brand/nexo-logo.svg', primary: '#2563eb',
-  accent: '#eff6ff', detail: '#2563eb', legalName: 'Nexo Demo — empresa ficticia',
-  taxId: '', address: 'Dirección de demostración', phone: '',
-  email: 'demo@example.com', website: 'example.com',
+  name: 'NEXO',
+  logo: '/brand/nexo-logo.svg',
+  primary: '#2563eb',
+  accent: '#eff6ff',
+  detail: '#2563eb',
+  legalName: 'Nexo Demo — empresa ficticia',
+  taxId: '',
+  address: 'Dirección de demostración',
+  phone: '',
+  email: 'demo@example.com',
+  website: 'example.com',
   paymentTerms: 'Documento de demostración. Sin validez comercial ni datos bancarios.',
 };
 export const blankBrand: WorkspaceBrand = {
@@ -43,6 +56,7 @@ export function validBrand(b: unknown): b is WorkspaceBrand {
       .filter((k) => k !== 'detail')
       .every((k) => typeof v[k as keyof WorkspaceBrand] === 'string') &&
     !!v.name.trim() &&
+    (v.currency === undefined || ['EUR', 'USD', 'GBP'].includes(v.currency)) &&
     v.name.length <= 80 &&
     Object.entries(v).every(
       ([k, x]) => typeof x === 'string' && x.length <= (k === 'logo' ? 250000 : 2000),

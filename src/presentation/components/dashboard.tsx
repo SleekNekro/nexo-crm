@@ -1,8 +1,13 @@
 'use client';
+import { useBusinessSettings } from '../hooks/use-business-settings';
+import { phaseFor } from '../../domain/business-settings';
+import StageLabel from './stage-label';
+import Module, { useViewAccess } from './module';
+import { useMoney } from '../hooks/use-business-settings';
 import { PermissionButton } from './permission-controls';
 import { ArrowUpRight, CalendarCheck, Plus } from 'lucide-react';
 import { completeTask } from '../../domain/actions';
-import { type Data, type Deal, type Task, money, stages, subtotal } from '../../domain/model';
+import { type Data, type Deal, type Task, stages, subtotal } from '../../domain/model';
 import { dueLabel } from './activity-list';
 type Props = {
   data: Data;
@@ -38,22 +43,27 @@ export default function Dashboard({
   open,
   save,
 }: Props) {
+  const money = useMoney();
+  const canView = useViewAccess();
+  const settings = useBusinessSettings();
   return (
     <>
       {Object.keys(pendingCounts).length > 0 && (
-        <section className="card">
-          <h2>Partes por confirmar</h2>
-          {Object.entries(pendingCounts)
-            .filter(([, count]) => count > 0)
-            .map(([id, count]) => (
-              <p key={id}>
-                <button onClick={() => onReviewWork(id)}>
-                  Revisar {count} {count === 1 ? 'parte' : 'partes'} ·{' '}
-                  {data.works?.find((w) => w.id === id)?.name || 'Obra'}
-                </button>
-              </p>
-            ))}
-        </section>
+        <Module name="Obras">
+          <section className="card">
+            <h2>Partes por confirmar</h2>
+            {Object.entries(pendingCounts)
+              .filter(([, count]) => count > 0)
+              .map(([id, count]) => (
+                <p key={id}>
+                  <button onClick={() => onReviewWork(id)}>
+                    Revisar {count} {count === 1 ? 'parte' : 'partes'} ·{' '}
+                    {data.works?.find((w) => w.id === id)?.name || 'Obra'}
+                  </button>
+                </p>
+              ))}
+          </section>
+        </Module>
       )}
       <div className="metrics">
         {[
@@ -101,94 +111,102 @@ export default function Dashboard({
             String(tasks.filter((t) => !t.done && !t.cancelled).length),
             'Seguimientos y recepción',
           ],
-        ].map(([label, value, desc], i) => (
-          <button
-            key={label}
-            className={'metric m' + i}
-            onClick={() => setView(i === 3 ? 'Actividades' : 'Tratos')}
-          >
-            <span>
-              {label}
-              <ArrowUpRight size={17} />
-            </span>
-            <strong>{value}</strong>
-            <small>{desc}</small>
-          </button>
-        ))}
+        ].map(
+          ([label, value, desc], i) =>
+            canView(i === 3 ? 'Actividades' : 'Tratos') && (
+              <button
+                key={label}
+                className={'metric m' + i}
+                onClick={() => setView(i === 3 ? 'Actividades' : 'Tratos')}
+              >
+                <span>
+                  {label}
+                  <ArrowUpRight size={17} />
+                </span>
+                <strong>{value}</strong>
+                <small>{desc}</small>
+              </button>
+            ),
+        )}
       </div>
       <div className="dashboardgrid">
-        <section className="card">
-          <div className="sectionhead">
-            <div>
-              <h2>El pulso de tus ventas</h2>
-              <p>Distribución de oportunidades por fase</p>
-            </div>
-            <button className="link" onClick={() => setView('Tratos')}>
-              Ver embudo ↗
-            </button>
-          </div>
-          <div className="bars">
-            {stages.map((s, i) => {
-              let count = deals.filter((d) => d.stage === s).length;
-              return (
-                <div className="barcol" key={s}>
-                  <div className="barplot">
-                    <strong>{count}</strong>
-                    <div
-                      className={'bar bar' + i}
-                      style={{
-                        height: Math.max(2, (count / Math.max(1, deals.length)) * 140) + 'px',
-                      }}
-                    />
-                  </div>
-                  <span>{s}</span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="chartfoot">
-            {deals.length} tratos en total <span>Vista actual · {profile}</span>
-          </div>
-        </section>
-        <section className="card">
-          <div className="sectionhead">
-            <div>
-              <h2>Tu siguiente paso</h2>
-              <p>No dejes conversaciones a medias</p>
-            </div>
-            <CalendarCheck size={20} />
-          </div>
-          {tasks
-            .filter((t) => !t.done && !t.cancelled)
-            .sort((a, b) => a.due.localeCompare(b.due))
-            .slice(0, 5)
-            .map((t) => (
-              <div className="taskrow" key={t.id}>
-                <PermissionButton
-                  action="tasks"
-                  className="check"
-                  aria-label="Completar actividad"
-                  disabled={busy}
-                  onClick={() => {
-                    save(completeTask(data, t.id, true));
-                  }}
-                />
-                <div>
-                  <strong>{t.title}</strong>
-                  <small>
-                    {company(deals.find((d) => d.id === t.dealId)?.companyId || '')} · {t.kind}
-                  </small>
-                </div>
-                <span className="due">{dueLabel(t.due)}</span>
+        <Module name="Tratos">
+          <section className="card">
+            <div className="sectionhead">
+              <div>
+                <h2>El pulso de tus ventas</h2>
+                <p>Distribución de oportunidades por fase</p>
               </div>
-            ))}
-          {!tasks.some((t) => !t.done && !t.cancelled) && (
-            <div className="empty">Todo al día. Crea tu próxima actividad.</div>
-          )}
-          <PermissionButton action="tasks" className="wide" onClick={() => open('Actividad')}>
-            <Plus size={15} /> Programar actividad
-          </PermissionButton>
-        </section>
+              <button className="link" onClick={() => setView('Tratos')}>
+                Ver embudo ↗
+              </button>
+            </div>
+            <div className="bars">
+              {settings.phases.map((s, i) => {
+                let count = deals.filter((d) => phaseFor(d, settings)?.id === s.id).length;
+                return (
+                  <div className="barcol" key={s.id}>
+                    <div className="barplot">
+                      <strong>{count}</strong>
+                      <div
+                        className={'bar bar' + i}
+                        style={{
+                          background: s.color,
+                          height: Math.max(2, (count / Math.max(1, deals.length)) * 140) + 'px',
+                        }}
+                      />
+                    </div>
+                    <span>{s.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="chartfoot">
+              {deals.length} tratos en total <span>Vista actual · {profile}</span>
+            </div>
+          </section>
+        </Module>
+        <Module name="Actividades">
+          <section className="card">
+            <div className="sectionhead">
+              <div>
+                <h2>Tu siguiente paso</h2>
+                <p>No dejes conversaciones a medias</p>
+              </div>
+              <CalendarCheck size={20} />
+            </div>
+            {tasks
+              .filter((t) => !t.done && !t.cancelled)
+              .sort((a, b) => a.due.localeCompare(b.due))
+              .slice(0, 5)
+              .map((t) => (
+                <div className="taskrow" key={t.id}>
+                  <PermissionButton
+                    action="tasks"
+                    className="check"
+                    aria-label="Completar actividad"
+                    disabled={busy}
+                    onClick={() => {
+                      save(completeTask(data, t.id, true));
+                    }}
+                  />
+                  <div>
+                    <strong>{t.title}</strong>
+                    <small>
+                      {company(deals.find((d) => d.id === t.dealId)?.companyId || '')} · {t.kind}
+                    </small>
+                  </div>
+                  <span className="due">{dueLabel(t.due)}</span>
+                </div>
+              ))}
+            {!tasks.some((t) => !t.done && !t.cancelled) && (
+              <div className="empty">Todo al día. Crea tu próxima actividad.</div>
+            )}
+            <PermissionButton action="tasks" className="wide" onClick={() => open('Actividad')}>
+              <Plus size={15} /> Programar actividad
+            </PermissionButton>
+          </section>
+        </Module>
       </div>
       <section className="card">
         <div className="sectionhead">
@@ -226,7 +244,9 @@ export default function Dashboard({
                     <small>{company(d.companyId)}</small>
                   </td>
                   <td>
-                    <span className={'badge s' + stages.indexOf(d.stage)}>{d.stage}</span>
+                    <span className={'badge s' + stages.indexOf(d.stage)}>
+                      <StageLabel deal={d} />
+                    </span>
                   </td>
                   <td>{d.owner}</td>
                   <td>

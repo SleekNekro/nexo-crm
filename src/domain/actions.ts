@@ -1,3 +1,4 @@
+import { defaultSettings, type BusinessSettings } from './business-settings.ts';
 import {
   activityKinds,
   validActivityPriority,
@@ -14,6 +15,7 @@ export function changeStage(
   newId: () => string,
   date: string,
   reason?: string,
+  createOrders = true,
 ): Data {
   if (!['En preparación', 'Pendiente del cliente', 'Ganado', 'Perdido'].includes(stage))
     throw Error('Fase no válida');
@@ -30,8 +32,9 @@ export function changeStage(
     !n.orders.some((o) => o.dealId === id)
   )
     throw Error('Selecciona y acepta una revisión desde Presupuesto');
-  if (stage === 'Ganado' && (!saleLines.length || !validLines(saleLines)))
+  if (createOrders && stage === 'Ganado' && (!saleLines.length || !validLines(saleLines)))
     throw Error('Añade partidas válidas antes de ganar el trato');
+  if (d.stage !== stage) delete d.pipelinePhase;
   d.stage = stage;
   if (stage === 'Perdido') d.reason = reason?.trim();
   else delete d.reason;
@@ -39,7 +42,7 @@ export function changeStage(
     n.tasks
       .filter((t) => t.dealId === id && t.kind !== 'Recepción' && !t.done && !t.cancelled)
       .forEach((t) => (t.cancelled = 'Cancelada por cierre: ' + stage));
-  if (stage === 'Ganado' && !n.orders.some((o) => o.dealId === id)) {
+  if (createOrders && stage === 'Ganado' && !n.orders.some((o) => o.dealId === id)) {
     n.orders.push({
       id: newId(),
       dealId: id,
@@ -206,6 +209,7 @@ export function markQuoteSent(
   sentAt: string,
   due: string,
   newId: () => string,
+  automation: BusinessSettings['automation'] = defaultSettings.automation,
 ): Data {
   const n = structuredClone(data),
     d = n.deals.find((d) => d.id === id),
@@ -217,7 +221,7 @@ export function markQuoteSent(
   const sentDay = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(
     new Date(sentAt),
   );
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(due) || !siteDate(due) || due < sentDay)
+  if (automation.followUp && (!/^\d{4}-\d{2}-\d{2}$/.test(due) || !siteDate(due) || due < sentDay))
     throw Error('Indica una fecha de seguimiento válida');
   if (v.sentAt) return n;
   const older = new Set(d.versions.slice(0, d.versions.indexOf(v)).map((r) => r.id));
@@ -234,18 +238,22 @@ export function markQuoteSent(
       t.cancelled = 'Sustituida por el envío de una nueva revisión';
     });
   v.sentAt = sentAt;
-  v.followUp = due;
-  d.stage = 'Pendiente del cliente';
-  n.tasks.push({
-    id: newId(),
-    dealId: id,
-    quoteRevisionId: revisionId,
-    title: 'Seguimiento del presupuesto ' + (v.number || 'R' + (d.versions.indexOf(v) + 1)),
-    due,
-    owner: d.owner,
-    done: false,
-    kind: 'Llamada',
-  });
+  if (automation.followUp) v.followUp = due;
+  if (automation.pendingOnSend) {
+    d.stage = 'Pendiente del cliente';
+    delete d.pipelinePhase;
+  }
+  if (automation.followUp)
+    n.tasks.push({
+      id: newId(),
+      dealId: id,
+      quoteRevisionId: revisionId,
+      title: automation.followUpTitle + ' ' + (v.number || 'R' + (d.versions.indexOf(v) + 1)),
+      due,
+      owner: d.owner,
+      done: false,
+      kind: 'Llamada',
+    });
   return n;
 }
 

@@ -184,6 +184,9 @@ export function applyAuthorized(current: Data, input: Data, u: Identity, now: st
         original &&
         next &&
         !canReadQuotes(u) &&
+        (!(u.workspace?.settings && !u.workspace.settings.modules.includes('Presupuestos')) ||
+          (original as any).lines.length ||
+          (original as any).versions.length) &&
         (original as any).stage !== (next as any).stage
       )
         throw Error('Se necesita acceso al presupuesto para cambiar la etapa');

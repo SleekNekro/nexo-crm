@@ -1,3 +1,4 @@
+import { settingsOrDefault, validateCustomData } from '../domain/business-settings';
 import { applyEntityChanges, entityChanges, type EntityChange } from '../domain/entity-changes';
 import { workAuditChanges } from '../application/work-audit';
 import { recordWorkAudit } from '../infrastructure/work-audit';
@@ -28,6 +29,15 @@ export async function saveWorkspace(
   try {
     await client.query('BEGIN');
     const r = await lockEntities(client);
+    const currentConfig = (
+      await client.query('SELECT settings FROM public.crm_workspaces WHERE id=$1', [
+        user.workspaceId,
+      ])
+    ).rows[0]?.settings;
+    user = {
+      ...user,
+      workspace: user.workspace ? { ...user.workspace, settings: currentConfig } : undefined,
+    };
     if (r.rows[0].version !== b.version) {
       await client.query('ROLLBACK');
       return result(
@@ -52,8 +62,30 @@ export async function saveWorkspace(
         next,
         () => crypto.randomUUID(),
         businessDay(),
+        settingsOrDefault(user.workspace?.settings),
       );
+      for (const d of next.deals) {
+        const previous = r.rows[0].data.deals.find((old) => old.id === d.id);
+        if (previous && previous.stage !== d.stage && previous.pipelinePhase === d.pipelinePhase)
+          delete d.pipelinePhase;
+      }
+      validateCustomData(next, settingsOrDefault(user.workspace?.settings));
       validateBusinessChange(r.rows[0].data, next);
+      const removedCompanies = r.rows[0].data.companies
+        .filter((c) => !next.companies.some((n) => n.id === c.id))
+        .map((c) => c.id);
+      if (
+        removedCompanies.length &&
+        (
+          await client.query(
+            'SELECT id FROM crm_company_notes WHERE company_id=ANY($1::text[]) LIMIT 1',
+            [removedCompanies],
+          )
+        ).rowCount
+      )
+        throw Error(
+          'Esta empresa tiene notas de seguimiento. No se puede eliminar sin perder su historial; puedes fusionarla con otra empresa.',
+        );
       await bindWorkAccounts(client, r.rows[0].data, next, user.workspaceId);
     } catch (e) {
       await client.query('ROLLBACK');

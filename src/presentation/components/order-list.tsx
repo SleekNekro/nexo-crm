@@ -1,8 +1,9 @@
 'use client';
+import { useMoney } from '../hooks/use-business-settings';
 import { PermissionButton } from './permission-controls';
 import { recordId } from '../utils/record-id';
 import { createWorkFromOrder } from '../../domain/actions';
-import { type Data, type Deal, money, total } from '../../domain/model';
+import { type Data, type Deal, total } from '../../domain/model';
 type Props = {
   data: Data;
   filtered: Deal[];
@@ -30,6 +31,7 @@ export default function OrderList({
   setError,
   save,
 }: Props) {
+  const money = useMoney();
   return (
     <section className="card tablewrap mobile-record-cards">
       <table>

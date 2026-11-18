@@ -1,4 +1,5 @@
 export type Company = {
+  customFields?: Record<string, string>;
   status?: import('./company-status').CompanyStatus;
   taxId?: string;
   address?: string;
@@ -13,6 +14,8 @@ export type Company = {
   phone: string;
 };
 export type Deal = {
+  pipelinePhase?: string;
+  customFields?: Record<string, string>;
   updatedAt?: string;
   createdAt?: string;
   acceptedRevisionId?: string;
@@ -66,6 +69,7 @@ export type Task = {
   kind: string;
 };
 export type Contact = {
+  customFields?: Record<string, string>;
   id: string;
   companyId: string;
   name: string;

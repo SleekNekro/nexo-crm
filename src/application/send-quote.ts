@@ -1,3 +1,4 @@
+import { settingsOrDefault } from '../domain/business-settings.ts';
 import { validMailbox } from '../domain/mail-settings.ts';
 import { randomUUID, createHash } from 'node:crypto';
 import type { Pool } from 'pg';
@@ -58,7 +59,12 @@ export function validateSend(b: any): asserts b is SendRequest {
     throw Error('Indica el próximo seguimiento.');
 }
 function authorized(data: Data, u: Identity, dealId: string, revisionId: string) {
-  if (!canAct(u, 'deals') || !canAct(u, 'tasks') || u.mustChange)
+  if (
+    !canAct(u, 'deals') ||
+    (settingsOrDefault(u.workspace?.settings).modules.includes('Actividades') &&
+      !canAct(u, 'tasks')) ||
+    u.mustChange
+  )
     throw Error('Sin permiso para enviar presupuestos.');
   const visible = visibleData(data, u),
     deal = visible.deals.find((d) => d.id === dealId),
@@ -83,9 +89,9 @@ export function publicMail(row: any) {
     error: row.error,
     message:
       row.status === 'sent'
-        ? 'Correo aceptado por el servidor. Envío y seguimiento registrados.'
+        ? 'Correo aceptado por el servidor. Envío registrado.'
         : row.status === 'accepted'
-          ? 'Correo aceptado; pendiente de actualizar el seguimiento. Consulta el estado de nuevo.'
+          ? 'Correo aceptado; pendiente de registrar las reglas del envío. Consulta el estado de nuevo.'
           : row.status === 'failed'
             ? 'El envío no se ha realizado. Revisa la configuración y vuelve a intentarlo.'
             : row.status === 'unknown'
@@ -126,6 +132,13 @@ export async function reconcileMail(db: Pool, id: string) {
         const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(
           new Date(),
         );
+        const settings = settingsOrDefault(
+          (
+            await c.query(
+              'SELECT settings FROM public.crm_workspaces WHERE schema_name=current_schema()',
+            )
+          ).rows[0]?.settings,
+        );
         next = markQuoteSent(
           before,
           deal.id,
@@ -133,6 +146,10 @@ export async function reconcileMail(db: Pool, id: string) {
           new Date(row.accepted_at).toISOString(),
           row.due < today ? today : row.due,
           randomUUID,
+          {
+            ...settings.automation,
+            followUp: settings.automation.followUp && settings.modules.includes('Actividades'),
+          },
         );
       }
       await recordSales(c, before, next, row.user_id);
@@ -207,6 +224,7 @@ export async function sendQuote(db: Pool, user: Identity, b: unknown, deps: Send
       new Date().toISOString(),
       b.due,
       randomUUID,
+      settingsOrDefault(user.workspace?.settings).automation,
     );
     const filename =
       'Presupuesto-' +

@@ -1,6 +1,7 @@
 'use client';
+import { useMoney } from '../hooks/use-business-settings';
 import { useEffect, useState } from 'react';
-import { money } from '../../domain/model';
+import {} from '../../domain/model';
 import type { commercialAnalysis, SalesEvent } from '../../domain/sales-metrics';
 import { localDay } from './activity-list';
 type Result = {
@@ -13,6 +14,7 @@ type Result = {
   previous: { from: string; to: string; rows: ReturnType<typeof commercialAnalysis> };
 };
 export default function CommercialAnalysis() {
+  const money = useMoney();
   const today = localDay(),
     [from, setFrom] = useState(today.slice(0, 8) + '01'),
     [to, setTo] = useState(today),

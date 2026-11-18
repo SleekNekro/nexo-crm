@@ -1,3 +1,4 @@
+import { moduleEnabled, type BusinessSettings } from './business-settings.ts';
 // Views constrain server-side reads as well as navigation; roles still constrain ownership.
 export const viewNames = [
   'Resumen',
@@ -27,7 +28,11 @@ export const actionLabels = {
   accounts: 'Gestionar cuentas del equipo',
 } as const;
 export type AccountPermissions = { views: string[]; actions: string[] };
-type Subject = { role: string; permissions?: AccountPermissions | null };
+type Subject = {
+  workspace?: { settings?: BusinessSettings };
+  role: string;
+  permissions?: AccountPermissions | null;
+};
 export function availableViews(role: string): string[] {
   return viewNames.filter(
     (v) =>
@@ -47,9 +52,20 @@ export function availableActions(role: string): string[] {
   );
 }
 export const canView = (u: Subject, view: string) =>
+  moduleEnabled(u.workspace?.settings, view) &&
   availableViews(u.role).includes(view) &&
   (u.role === 'developer' || !u.permissions || u.permissions.views.includes(view));
+const actionModule: Record<string, string> = {
+  deals: 'Tratos',
+  tasks: 'Actividades',
+  orders: 'Pedidos',
+  products: 'Catálogo',
+  works: 'Obras',
+  labor: 'Obras',
+  expenses: 'Obras',
+};
 export const canAct = (u: Subject, action: string) =>
+  (!actionModule[action] || moduleEnabled(u.workspace?.settings, actionModule[action])) &&
   availableActions(u.role).includes(action) &&
   (u.role === 'developer' || !u.permissions || u.permissions.actions.includes(action));
 export function validPermissions(value: unknown, role: string): value is AccountPermissions {
@@ -96,8 +112,12 @@ export function canManageAccount(
   )
     return false;
   return (
-    availableViews(target.role).every((v) => !canView(target, v) || canView(actor, v)) &&
-    availableActions(target.role).every((a) => !canAct(target, a) || canAct(actor, a))
+    availableViews(target.role).every(
+      (v) => !canView({ ...target, workspace: actor.workspace }, v) || canView(actor, v),
+    ) &&
+    availableActions(target.role).every(
+      (a) => !canAct({ ...target, workspace: actor.workspace }, a) || canAct(actor, a),
+    )
   );
 }
 
@@ -119,6 +139,7 @@ export const entityView: Record<string, string> = {
 export function canReadEntity(u: Subject, key: string) {
   if (u.role === 'worker')
     return (
+      moduleEnabled(u.workspace?.settings, 'Obras') &&
       canView(u, 'Mi día') &&
       ['works', 'workers', 'workItems', 'workZones', 'laborReports'].includes(key)
     );

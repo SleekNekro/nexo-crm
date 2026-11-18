@@ -1,4 +1,5 @@
 'use client';
+import { useMoney } from '../hooks/use-business-settings';
 import { photoUrl } from '../utils/workspace-context';
 import {
   PermissionForm,
@@ -12,7 +13,7 @@ import { recordId } from '../utils/record-id';
 import { useEffect, useState } from 'react';
 import { canReview, reviewLabor, saveExpense, saveWorker, workCosts } from '../../domain/labor';
 import type { Data, SitePhoto, Work, Worker, WorkExpense } from '../../domain/model';
-import { money } from '../../domain/model';
+import {} from '../../domain/model';
 import { localDay } from './activity-list';
 import { FormDialog } from './dialog';
 import WorkCostComparison from './work-cost-comparison';
@@ -27,6 +28,7 @@ type Props = {
   onSave: (d: Data) => Promise<boolean | undefined>;
 };
 export default function LaborPanel({ data, work, profile, busy, error, onSave, onDirty }: Props) {
+  const money = useMoney();
   const [tab, setTab] = useState('Validar horas'),
     [filter, setFilter] = useState('Pendiente'),
     [worker, setWorker] = useState<Worker | null>(null),

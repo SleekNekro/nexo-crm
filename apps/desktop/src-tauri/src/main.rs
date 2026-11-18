@@ -1,12 +1,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use tauri::menu::{Menu, SubmenuBuilder};
 use tauri::webview::NewWindowResponse;
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 use url::Url;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ServerConfig {
     url: String,
@@ -68,63 +68,119 @@ fn main() {
                 }
             });
             let path = app.path().app_config_dir()?.join("server.json");
-            let config: ServerConfig =
-                serde_json::from_str(&std::fs::read_to_string(path).unwrap_or_else(|_| {
-                    option_env!("NEXO_DEFAULT_SERVER_JSON")
-                        .unwrap_or(include_str!("../../../server.example.json"))
-                        .into()
-                }))?;
-            let url = server_url(&config).map_err(std::io::Error::other)?;
-            let origin = url.origin();
-            let popup_origin = origin.clone();
-            let handle = app.handle().clone();
-            let sequence = AtomicUsize::new(0);
-            let print_handle = app.handle().clone();
-            WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
-                .user_agent("Mozilla/5.0 AppleWebKit/605.1.15 NexoDesktop/0.1")
-                .title("NEXO CRM")
-                .inner_size(1280.0, 850.0)
-                .min_inner_size(360.0, 600.0)
-                .on_navigation(move |url| {
-                    if url.origin() == origin && url.path() == "/__native/print" {
-                        if let Some(window) = print_handle.get_webview_window("main") {
-                            if let Err(error) = window.print() {
-                                eprintln!("No se pudo imprimir: {error}");
+            let raw = std::fs::read_to_string(&path)
+                .ok()
+                .or_else(|| option_env!("NEXO_DEFAULT_SERVER_JSON").map(String::from));
+            if let Some(url) = raw
+                .and_then(|value| serde_json::from_str::<ServerConfig>(&value).ok())
+                .and_then(|config| server_url(&config).ok())
+            {
+                open_crm(app.handle(), url)?;
+            } else {
+                let handle = app.handle().clone();
+                WebviewWindowBuilder::new(app, "setup", WebviewUrl::App("index.html".into()))
+                    .title("Conectar · NEXO CRM Beta")
+                    .inner_size(620.0, 580.0)
+                    .on_navigation(move |url| {
+                        if url.scheme() != "nexo-setup" {
+                            return url.scheme() == "tauri"
+                                || url.host_str() == Some("tauri.localhost");
+                        }
+                        let config = ServerConfig {
+                            url: url
+                                .query_pairs()
+                                .find(|(k, _)| k == "url")
+                                .map(|(_, v)| v.into_owned())
+                                .unwrap_or_default(),
+                            allow_local_http: url
+                                .query_pairs()
+                                .any(|(k, v)| k == "local" && v == "1"),
+                        };
+                        let app = handle.clone();
+                        // Window creation must not block the navigation callback on Windows.
+                        std::thread::spawn(move || {
+                            let result = (|| -> Result<(), String> {
+                                let url = server_url(&config)?;
+                                let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+                                std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+                                std::fs::write(
+                                    dir.join("server.json"),
+                                    serde_json::to_vec(&config).unwrap(),
+                                )
+                                .map_err(|e| e.to_string())?;
+                                open_crm(&app, url).map_err(|e| e.to_string())?;
+                                if let Some(w) = app.get_webview_window("setup") {
+                                    let _ = w.close();
+                                }
+                                Ok(())
+                            })();
+                            if let Err(message) = result {
+                                if let Some(w) = app.get_webview_window("setup") {
+                                    let _ = w.eval(&format!(
+                                        "showError({})",
+                                        serde_json::to_string(&message).unwrap()
+                                    ));
+                                }
                             }
-                        }
-                        return false;
-                    }
-                    allows_document_navigation(url, &origin)
-                })
-                .on_new_window(move |url, features| {
-                    if !allows_document_navigation(&url, &popup_origin) {
-                        return NewWindowResponse::Deny;
-                    }
-                    let allowed = popup_origin.clone();
-                    let label = format!("document-{}", sequence.fetch_add(1, Ordering::Relaxed));
-                    let window = WebviewWindowBuilder::new(
-                        &handle,
-                        label,
-                        WebviewUrl::External("about:blank".parse().unwrap()),
-                    )
-                    .window_features(features)
-                    .title("Documento · NEXO CRM")
-                    .on_navigation(move |url| allows_document_navigation(url, &allowed))
-                    .on_new_window(|_, _| NewWindowResponse::Deny)
-                    .build();
-                    match window {
-                        Ok(window) => NewWindowResponse::Create { window },
-                        Err(error) => {
-                            eprintln!("No se pudo abrir el documento: {error}");
-                            NewWindowResponse::Deny
-                        }
-                    }
-                })
-                .build()?;
+                        });
+                        false
+                    })
+                    .build()?;
+            }
             Ok(())
         })
         .run(tauri::generate_context!())
         .expect("No se pudo abrir NEXO CRM");
+}
+
+fn open_crm(app: &tauri::AppHandle, url: Url) -> tauri::Result<()> {
+    let origin = url.origin();
+    let popup_origin = origin.clone();
+    let handle = app.clone();
+    let sequence = AtomicUsize::new(0);
+    let print_handle = app.clone();
+    WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
+        .user_agent("Mozilla/5.0 AppleWebKit/605.1.15 NexoDesktop/0.1")
+        .title("NEXO CRM")
+        .inner_size(1280.0, 850.0)
+        .min_inner_size(360.0, 600.0)
+        .on_navigation(move |url| {
+            if url.origin() == origin && url.path() == "/__native/print" {
+                if let Some(window) = print_handle.get_webview_window("main") {
+                    if let Err(error) = window.print() {
+                        eprintln!("No se pudo imprimir: {error}");
+                    }
+                }
+                return false;
+            }
+            allows_document_navigation(url, &origin)
+        })
+        .on_new_window(move |url, features| {
+            if !allows_document_navigation(&url, &popup_origin) {
+                return NewWindowResponse::Deny;
+            }
+            let allowed = popup_origin.clone();
+            let label = format!("document-{}", sequence.fetch_add(1, Ordering::Relaxed));
+            let window = WebviewWindowBuilder::new(
+                &handle,
+                label,
+                WebviewUrl::External("about:blank".parse().unwrap()),
+            )
+            .window_features(features)
+            .title("Documento · NEXO CRM")
+            .on_navigation(move |url| allows_document_navigation(url, &allowed))
+            .on_new_window(|_, _| NewWindowResponse::Deny)
+            .build();
+            match window {
+                Ok(window) => NewWindowResponse::Create { window },
+                Err(error) => {
+                    eprintln!("No se pudo abrir el documento: {error}");
+                    NewWindowResponse::Deny
+                }
+            }
+        })
+        .build()?;
+    Ok(())
 }
 
 #[cfg(test)]

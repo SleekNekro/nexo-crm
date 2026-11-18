@@ -1,6 +1,19 @@
 # Clientes de Nexo CRM
 
-Todos consumen el mismo servidor. Los cambios web llegan desde él; los cambios del contenedor nativo requieren recompilación e instalación. No se incluyen instaladores de la empresa ni firmas privadas.
+Todos consumen el mismo servidor. Los cambios web llegan desde él; los cambios del contenedor nativo requieren recompilación e instalación. Los clientes beta están en [Releases](https://github.com/SleekNekro/nexo-crm/releases). No incluyen el servidor, una base de datos local ni un modo sin conexión. No se incluyen instaladores de la empresa ni firmas privadas.
+
+## Instalar la beta
+
+1. Instala y arranca el servidor según el README principal; prepara HTTPS para datos reales y móviles.
+2. Descarga el ZIP correspondiente al procesador del Mac, el instalador Windows x64 o el APK Android.
+3. Mac: descomprime y mueve NEXO CRM a Aplicaciones. Windows: ejecuta el instalador. Android: abre el APK y autoriza esa fuente de instalación.
+4. Al abrir por primera vez, escribe la URL de tu servidor e inicia sesión. `localhost` solo sirve si el servidor está en ese mismo ordenador.
+
+Los ZIP de Mac llevan firma ad hoc, sin notarización Apple; Windows no lleva firma comercial. Consulta las [notas de la beta](../docs/release-notes/v0.2.0-beta.1.md) antes de autorizar avisos de seguridad. No desactives las protecciones del sistema globalmente. Android usa una clave exclusiva de Nexo Beta y el identificador `com.nexo.crm.beta`.
+
+Comprueba el archivo con `shasum -a 256 archivo` en macOS, o `Get-FileHash archivo -Algorithm SHA256` en PowerShell, y compara con `SHA256SUMS.txt` de la release.
+
+Si te equivocas al conectar, en Android utiliza **Conexión** (cierra la sesión local). En escritorio, cierra la app y corrige `server.json` mediante el script indicado abajo; también puedes borrar ese archivo para recuperar la pantalla inicial. No borres los datos del servidor.
 
 ## macOS y Windows — Tauri 2
 
@@ -14,19 +27,19 @@ npm run build:mac
 npm run build:windows
 ```
 
-La configuración de ejemplo usa `http://localhost:8180`, válida solo cuando el servidor está en ese equipo. Para otro destino ejecuta desde la raíz `node apps/scripts/configure-desktop.mjs https://crm.example.com`. El archivo local generado nunca se publica. También puede fijarse `NEXO_DEFAULT_SERVER_JSON` al compilar. No desactives la comprobación de certificados.
+La primera apertura permite indicar la URL y autorizar explícitamente HTTP únicamente en una red privada o loopback. Para pruebas en el mismo equipo puedes usar `http://localhost:8180`. Para otro destino ejecuta desde la raíz `node apps/scripts/configure-desktop.mjs https://crm.example.com`. El archivo local generado nunca se publica. También puede fijarse `NEXO_DEFAULT_SERVER_JSON` al compilar. No desactives la comprobación de certificados.
 
 Identificador propio: `com.nexo.crm`. No sustituye una aplicación empresarial instalada. El código de impresión usa el marcador `NexoDesktop/` para activar el diálogo nativo. Los iconos son gráficos nuevos de esta edición.
 
 ## Android — Java / WebView
 
-**Se puede compilar y ejecutar el cliente en Android 8 o posterior, pero no se entrega un APK listo para instalar.** El teléfono muestra el CRM alojado en tu ordenador o servidor. No ejecuta Next.js, Docker ni PostgreSQL y necesita conexión con ese servidor.
+**Hay un APK beta experimental para Android 8 o posterior en Releases.** El teléfono muestra el CRM alojado en tu ordenador o servidor. No ejecuta Next.js, Docker ni PostgreSQL y necesita conexión con ese servidor.
 
 ### Preparación
 
 1. Arranca Nexo en el ordenador siguiendo el README principal y completa el primer acceso en el navegador.
 2. Abre `apps/android` en Android Studio. Configura JDK 17 o posterior y Android SDK 35. El wrapper incluido descarga Gradle 8.11.1; la instalación del SDK puede solicitar aceptar las condiciones de Google.
-3. Configura el SDK desde Android Studio o mediante `ANDROID_HOME`. La dirección del servidor se incorpora al compilar con `-PcrmServer`; no hay selector de servidor dentro del APK. Si omites esa propiedad, la aplicación mostrará que la conexión no está configurada.
+3. Configura el SDK desde Android Studio o mediante `ANDROID_HOME`. La dirección se elige en la primera apertura; opcionalmente puedes fijar un valor inicial con `-PcrmServer`.
 
 ### Prueba local por USB, sin publicar el servidor
 
@@ -55,7 +68,7 @@ cd apps/android
 ./gradlew assembleRelease -PcrmServer=https://crm.example.com
 ```
 
-**Este comando genera una compilación release sin firmar**, porque el repositorio no incorpora una configuración de firma ni claves privadas. No es un instalador listo para repartir. Para obtener el APK instalable, utiliza Android Studio → **Generate Signed Bundle / APK → APK**, configura tu clave y conserva la misma propiedad `crmServer` durante la compilación (por ejemplo, en tu configuración local de Gradle). Guarda la clave fuera del repositorio y respáldala: las actualizaciones necesitan la misma firma y un `versionCode` mayor.
+La compilación release necesita firma. El workflow de beta utiliza `ANDROID_BETA_KEYSTORE` (PKCS12 codificado en base64) y `ANDROID_BETA_PASSWORD` de GitHub Secrets. La clave nunca se incluye en Git ni en los artefactos. Para compilar tu variante, crea tu propia clave con alias `nexo-beta` y proporciona las variables de entorno `ANDROID_KEYSTORE_PATH` y `ANDROID_KEYSTORE_PASSWORD`. Conserva una copia segura: las actualizaciones requieren la misma firma y un `versionCode` mayor. No utilices la firma de otra empresa o proyecto.
 
 Release exige HTTPS. Antes de distribuir, comprueba inicio/cierre de sesión, fotos, selector de archivos, impresión/PDF, botón Atrás y pérdida de red en un teléfono real. Esta edición no afirma haber superado esas pruebas en todos los dispositivos.
 
@@ -65,4 +78,6 @@ La web contiene manifiesto e iconos. Para una instalación con las capacidades e
 
 ## Estado
 
-La validación de esta entrega se centra en la web, el dominio y el arranque aislado. Los clientes nativos se publican como código fuente y requieren compilación y pruebas en sus plataformas; no se afirma que esta marca nueva tenga binarios ya validados.
+El workflow `Release beta` comprueba la web, ejecuta las pruebas Rust de escritorio, compila ambos Mac y Windows, y compila y analiza Android antes de publicar. Genera sumas SHA-256. Estas comprobaciones no equivalen a validación funcional de inicio de sesión, cámara y PDF en cada sistema: la beta requiere pruebas reales, especialmente Android.
+
+La publicación se ejecuta manualmente en GitHub Actions. La versión y las notas están fijadas en el workflow: para una siguiente beta, incrementa las versiones de los paquetes, Cargo, Tauri y Android (también `versionCode`), cambia el tag de publicación y añade sus notas. No reemplaces artefactos de una versión ya publicada.

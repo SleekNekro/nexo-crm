@@ -1,4 +1,5 @@
 'use client';
+import { useMoney } from '../hooks/use-business-settings';
 import { photoUrl } from '../utils/workspace-context';
 import { manualDate, plannedFinish, reconcileWorkDates } from '../../domain/work-dates';
 import WorkHistory from './work-history';
@@ -12,7 +13,7 @@ import { ArrowLeft, Camera, HardHat, MapPin, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { saveSiteReport, saveWork } from '../../domain/actions';
 import type { Data, SiteCrew, SitePhoto, SiteReport, Work } from '../../domain/model';
-import { money } from '../../domain/model';
+import {} from '../../domain/model';
 import { localDay } from './activity-list';
 import { FormDialog } from './dialog';
 import LaborPanel from './labor-panel';
@@ -46,6 +47,7 @@ export default function Works({
   onSelect,
   onDirty,
 }: Props) {
+  const money = useMoney();
   const [search, setSearch] = useState(''),
     [status, setStatus] = useState('Todas'),
     [tab, setTab] = useState('Resumen'),

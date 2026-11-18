@@ -5,12 +5,6 @@ const escape = (value: unknown) =>
     /[&<>"']/g,
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
   );
-const euro = (n: number) =>
-  new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 2,
-  }).format(n);
 const number = (n: number) =>
   new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 }).format(n);
 const round = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -27,6 +21,13 @@ export function quoteDocument(
     contact = revision.snapshot.contact;
   }
   const brand = revision.snapshot?.brand || nexoBrand;
+  const euro = (n: number) =>
+    new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: brand.currency || 'EUR',
+      minimumFractionDigits: 2,
+    }).format(n);
+
   logoUrl = brand.logo === '/brand/nexo-logo.svg' ? logoUrl : brand.logo;
   const logo = logoUrl
     ? brand.logoLayout === 'page-wordmark'

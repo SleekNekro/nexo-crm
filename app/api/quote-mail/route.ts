@@ -1,3 +1,4 @@
+import { settingsOrDefault } from '../../../src/domain/business-settings';
 import { canReadQuotes } from '../../../src/domain/permissions';
 import {
   readJsonObject,
@@ -58,7 +59,12 @@ export async function POST(req: Request) {
     const u = await currentUser();
     if (!u || u.mustChange) return json({ error: 'Inicia sesión' }, 401);
     if (!canReadQuotes(u)) return json({ error: 'Sin permiso para consultar presupuestos' }, 403);
-    if (!matchesWorkspace(req, u) || !canAct(u, 'deals') || !canAct(u, 'tasks'))
+    if (
+      !matchesWorkspace(req, u) ||
+      !canAct(u, 'deals') ||
+      (settingsOrDefault(u.workspace?.settings).modules.includes('Actividades') &&
+        !canAct(u, 'tasks'))
+    )
       return json({ error: 'Sin permiso' }, 403);
     const body = await readJsonObject(req, 20000);
     if (!(await throttle('quote-mail:' + u.id, 20, 3600)))

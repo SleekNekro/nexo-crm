@@ -1,10 +1,15 @@
 'use client';
+import type { CSSProperties } from 'react';
+import { contrastText } from '../../domain/workspace';
+import { useMoney } from '../hooks/use-business-settings';
+import { useBusinessSettings } from '../hooks/use-business-settings';
+import { phaseFor } from '../../domain/business-settings';
 import { nextCommercialStep } from '../../domain/commercial-workflow';
 import { useCanAction } from './permission-controls';
 import { dealAlerts } from '../../domain/commercial-followup';
 import { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
-import { type Data, type Deal, type Task, money, stages, subtotal } from '../../domain/model';
+import { type Data, type Deal, type Task, stages, subtotal } from '../../domain/model';
 import { useKanbanDrag } from '../hooks/use-kanban-drag';
 import { dueLabel } from './activity-list';
 type Props = {
@@ -27,6 +32,9 @@ export default function DealKanban({
   onNext,
   onStage,
 }: Props) {
+  const money = useMoney();
+  const settings = useBusinessSettings();
+  const phases = settings.phases;
   const [mobilePhase, setMobilePhase] = useState('Abiertos');
   const { drag, dropStage, suppressClick, cancelDrag, pointerDown, pointerMove, pointerUp } =
     useKanbanDrag(deals, busy || !useCanAction('deals'), onStage);
@@ -35,35 +43,44 @@ export default function DealKanban({
       <label className="mobile-phase-filter">
         Mostrar tratos
         <select value={mobilePhase} onChange={(e) => setMobilePhase(e.target.value)}>
-          {['Abiertos', ...stages, 'Todos'].map((phase) => (
-            <option key={phase}>{phase}</option>
-          ))}
+          {[{ id: 'Abiertos', label: 'Abiertos' }, ...phases, { id: 'Todos', label: 'Todos' }].map(
+            (phase) => (
+              <option key={phase.id} value={phase.id}>
+                {phase.label}
+              </option>
+            ),
+          )}
         </select>
       </label>
       <p className="draghelp">
         Arrastra un trato a otra fase. En móvil, filtra por fase y abre la ficha para cambiarla.
         Pulsa Esc para cancelar.
       </p>
-      <div className="kanban">
-        {stages.map((s, i) => (
+      <div className="kanban" style={{ '--phase-count': phases.length } as CSSProperties}>
+        {phases.map((phase, i) => (
           <section
-            data-stage={s}
+            data-stage={phase.id}
             data-mobile-hidden={
               mobilePhase !== 'Todos' &&
-              (mobilePhase === 'Abiertos' ? ['Ganado', 'Perdido'].includes(s) : mobilePhase !== s)
+              (mobilePhase === 'Abiertos'
+                ? ['Ganado', 'Perdido'].includes(phase.kind)
+                : mobilePhase !== phase.id)
             }
-            className={'column ' + (drag && dropStage === s ? 'dropactive' : '')}
-            key={s}
+            className={'column ' + (drag && dropStage === phase.id ? 'dropactive' : '')}
+            key={phase.id}
           >
-            <div className={'columnhead phase' + i}>
+            <div
+              className={'columnhead phase' + i}
+              style={{ background: phase.color, color: contrastText(phase.color) }}
+            >
               <h3>
-                {s}
-                <b>{deals.filter((d) => d.stage === s).length}</b>
+                {phase.label}
+                <b>{deals.filter((d) => phaseFor(d, settings)?.id === phase.id).length}</b>
               </h3>
               <small>
                 {money(
                   deals
-                    .filter((d) => d.stage === s)
+                    .filter((d) => phaseFor(d, settings)?.id === phase.id)
                     .reduce(
                       (a, d) =>
                         a +
@@ -78,7 +95,7 @@ export default function DealKanban({
               </small>
             </div>
             {deals
-              .filter((d) => d.stage === s)
+              .filter((d) => phaseFor(d, settings)?.id === phase.id)
               .map((d) => (
                 <article className="deal-card-group" key={d.id}>
                   <button

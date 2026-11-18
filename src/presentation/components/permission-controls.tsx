@@ -21,6 +21,9 @@ export function PermissionProvider({
 }) {
   return <Context.Provider value={user}>{children}</Context.Provider>;
 }
+export function useIdentity() {
+  return useContext(Context);
+}
 export function useCanAction(action: string) {
   const user = useContext(Context);
   return !user || action.split(',').every((a) => canAct(user, a));

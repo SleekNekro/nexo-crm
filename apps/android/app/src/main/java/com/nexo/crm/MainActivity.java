@@ -19,7 +19,7 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        server = BuildConfig.DEFAULT_SERVER;
+        server = getPreferences(MODE_PRIVATE).getString("server", BuildConfig.DEFAULT_SERVER);
         if (validServer(server)) openServer(); else configure();
     }
     private boolean validServer(String value) {
@@ -56,9 +56,30 @@ public class MainActivity extends Activity {
     private void configure() {
         LinearLayout layout = column();
         TextView message = new TextView(this);
-        message.setText("La conexión de la aplicación no está configurada. Contacta con el desarrollador.");
+        message.setText("NEXO CRM · Beta\nConecta con tu servidor Nexo. Necesitas su dirección HTTPS y una cuenta. Esta app no incluye el servidor.");
         message.setPadding(24,24,24,24); layout.addView(message);
+        EditText address = new EditText(this);
+        address.setSingleLine(true); address.setHint("https://crm.example.com");
+        address.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
+        address.setText(server); layout.addView(address);
+        layout.addView(button("Conectar", () -> {
+            String value = address.getText().toString().trim();
+            if (!validServer(value)) { address.setError("Introduce la raíz HTTPS de tu servidor, sin rutas ni credenciales"); return; }
+            server = value; getPreferences(MODE_PRIVATE).edit().putString("server", server).apply(); openServer();
+        }));
         setContentView(layout);
+    }
+    private void resetConnection() {
+        new AlertDialog.Builder(this).setTitle("Cambiar conexión")
+            .setMessage("Se cerrará la sesión local. Necesitarás la dirección del servidor y volver a iniciar sesión.")
+            .setPositiveButton("Continuar", (d,w) -> {
+                if (web != null) { web.destroy(); web = null; }
+                WebStorage.getInstance().deleteAllData();
+                CookieManager.getInstance().removeAllCookies(done -> {
+                    CookieManager.getInstance().flush();
+                    getPreferences(MODE_PRIVATE).edit().remove("server").apply(); configure();
+                });
+            }).setNegativeButton("Cancelar", null).show();
     }
     private void openServer() {
         if (web != null) web.destroy();
@@ -66,6 +87,7 @@ public class MainActivity extends Activity {
         LinearLayout toolbar = new LinearLayout(this);
         toolbar.addView(button("Atrás", () -> { if (web.canGoBack()) web.goBack(); }));
         toolbar.addView(button("Recargar", () -> web.reload()));
+        toolbar.addView(button("Conexión", this::resetConnection));
         layout.addView(toolbar);
         web = makeWebView(false);
         layout.addView(web, new LinearLayout.LayoutParams(-1, 0, 1));

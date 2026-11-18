@@ -20,17 +20,27 @@ Hay cosas por pulir y decisiones que irán evolucionando. Las mejoras y las preg
 
 La muestra utiliza una **empresa ficticia de construcción y revestimientos**. Por eso verás obras, operarios, materiales y mediciones. Todos los datos y la identidad de esta edición son ficticios.
 
-El objetivo es que Nexo pueda adaptarse a **pymes de distintos sectores**, manteniendo pocos pasos, pantallas claras y solo las funciones que necesita cada negocio. Hoy, la personalización más profunda todavía requiere modificar código.
+El objetivo es que Nexo pueda adaptarse a **pymes de distintos sectores**, manteniendo pocos pasos, pantallas claras y solo las funciones que necesita cada negocio. Ya puedes ajustar campos, etapas, módulos y reglas comerciales desde la interfaz. Crear tipos de sección completamente nuevos todavía requiere código.
 
-**El siguiente paso:** una versión más accesible para personas sin perfil técnico, donde se puedan añadir y configurar secciones modulares desde la interfaz, sin programar. Está pendiente de desarrollo y aún no tiene fecha; no es una función disponible en esta entrega.
+**Personalización sin programar:** el asistente prepara la empresa y permite activar módulos existentes, añadir campos y adaptar etapas y automatizaciones. Un constructor de secciones completamente nuevas sigue siendo una evolución pendiente, sin fecha anunciada.
 
 ## Qué puedes hacer hoy
 
 - Gestionar empresas, contactos, actividades y seguimiento comercial.
+- Importar empresas y contactos desde Excel (`.xlsx`) o CSV con vista previa y fusionar duplicados conservando sus relaciones.
+- Consultar el historial de cada empresa —notas, actividades, presupuestos y correos enviados— y sus pendientes desde la lista.
+- Preparar nombre, logo, colores, moneda, equipo y correo con un asistente; empezar vacío o cargar ejemplos.
+- Personalizar campos y etapas, activar módulos y ajustar tres reglas comerciales desde **Configurar negocio**.
 - Organizar tratos en Kanban y crear presupuestos con productos, revisiones y PDF.
 - Convertir presupuestos aceptados en pedidos; crear una obra sigue siendo opcional.
 - Registrar partes, fotos y horas, validar el trabajo y consultar costes.
 - Gestionar cuentas, permisos y espacios de empresa con datos separados.
+
+Guía práctica: [importación, duplicados e historial de empresa](docs/commercial-data.md). Admite CSV UTF-8 y Excel `.xlsx` con selección de hoja.
+
+Configuración: [asistente, campos, etapas, módulos y automatizaciones](docs/business-configuration.md). Solo el desarrollador modifica la configuración del negocio; cada usuario configura su correo.
+
+En una instalación nueva, entra con la cuenta inicial de desarrollador y pulsa **Preparar mi CRM**. Elige empezar vacío o cargar los ejemplos ficticios de las capturas.
 
 ## Un vistazo por dentro
 
@@ -93,11 +103,11 @@ Todos los clientes necesitan un **servidor Nexo encendido y accesible**. El tel�
 | Plataforma      | Estado actual                                                                     |
 | --------------- | --------------------------------------------------------------------------------- |
 | Web             | Puedes arrancarla con las instrucciones anteriores.                               |
-| Android 8+      | Código Java/WebView para compilar tu APK. No hay APK listo para descargar.        |
-| macOS / Windows | Código Tauri 2 para compilar los clientes. No se incluyen instaladores.           |
+| Android 8+      | APK beta experimental; requiere servidor HTTPS.        |
+| macOS / Windows | Clientes Tauri 2 beta: Mac Intel/Apple Silicon y Windows x64.           |
 | iPhone          | Web con manifiesto PWA; necesita HTTPS de confianza para instalarla desde Safari. |
 
-La [guía de aplicaciones](apps/README.md) explica la compilación, la prueba Android por USB y las limitaciones actuales.
+Descarga los clientes en [GitHub Releases](https://github.com/SleekNekro/nexo-crm/releases). Son una **beta para evaluación**, no incluyen el servidor y todavía requieren pruebas en equipos reales. La [guía de aplicaciones](apps/README.md) explica instalación, compilación y limitaciones.
 
 ## Para quienes quieran mirar el código
 

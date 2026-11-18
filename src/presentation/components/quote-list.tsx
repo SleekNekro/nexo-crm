@@ -1,10 +1,11 @@
 'use client';
+import { useMoney } from '../hooks/use-business-settings';
 import { nextCommercialStep } from '../../domain/commercial-workflow';
 import type { Task } from '../../domain/model';
 import { dueLabel } from './activity-list';
 
 import { quoteState, displayedQuote } from '../../domain/commercial-followup';
-import { Deal, money, stages, total } from '../../domain/model';
+import { Deal, stages, total } from '../../domain/model';
 type Props = {
   tasks: Task[];
   onNext: (id: string) => void;
@@ -25,6 +26,7 @@ export default function QuoteList({
   onOpen,
   onPrint,
 }: Props) {
+  const money = useMoney();
   const shown = deals.filter(
     (d) =>
       filter === 'Todos' ||

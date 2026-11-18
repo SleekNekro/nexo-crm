@@ -1,11 +1,13 @@
 'use client';
+import { useMoney } from '../hooks/use-business-settings';
+import { useBusinessSettings } from '../hooks/use-business-settings';
 import { useState } from 'react';
 import { Send } from 'lucide-react';
 import QuoteEmail from './quote-email';
 import { acceptQuote, markQuoteSent } from '../../domain/actions';
 import { suggestedFollowUp, revisionFollowUp } from '../../domain/quote-workflow';
 import type { Data, Deal } from '../../domain/model';
-import { money, total } from '../../domain/model';
+import { total } from '../../domain/model';
 import { PermissionButton, PermissionForm } from './permission-controls';
 import { localDay } from './activity-list';
 import { recordId } from '../utils/record-id';
@@ -30,9 +32,13 @@ export default function QuoteRevisionActions({
   onPrint: () => void;
   onError: (message: string) => void;
 }) {
+  const money = useMoney();
+  const settings = useBusinessSettings();
   const [emailOpen, setEmailOpen] = useState(false);
   const [success, setSuccess] = useState('');
-  const [due, setDue] = useState(() => suggestedFollowUp(localDay()));
+  const [due, setDue] = useState(() =>
+    suggestedFollowUp(localDay(), settings.automation.followUpDays),
+  );
   const followUp = revisionFollowUp(data, deal.id, revision.id);
   const closed = ['Ganado', 'Perdido'].includes(deal.stage),
     accepted = deal.acceptedRevisionId === revision.id;
@@ -63,7 +69,7 @@ export default function QuoteRevisionActions({
       <div className="quoteactions">
         {!closed && (
           <PermissionButton
-            action="deals,tasks"
+            action={settings.modules.includes('Actividades') ? 'deals,tasks' : 'deals'}
             className="primary icon-action quote-email-action"
             disabled={busy || dirty}
             onClick={() => setEmailOpen(true)}
@@ -78,7 +84,9 @@ export default function QuoteRevisionActions({
         )}
         {!deal.acceptedRevisionId && !data.orders.some((o) => o.dealId === deal.id) && (
           <PermissionButton
-            action="deals,orders,tasks"
+            action={
+              settings.modules.includes('Actividades') ? 'deals,orders,tasks' : 'deals,orders'
+            }
             disabled={busy || dirty || deal.stage === 'Perdido'}
             onClick={async () => {
               if (
@@ -92,8 +100,9 @@ export default function QuoteRevisionActions({
               )
                 return;
               try {
-                if (await onSave(acceptQuote(data, deal.id, revision.id, localDay(), recordId)))
-                  setSuccess('Presupuesto aceptado y pedido generado.');
+                const next = acceptQuote(data, deal.id, revision.id, localDay(), recordId);
+                if (!settings.modules.includes('Actividades')) next.tasks = data.tasks;
+                if (await onSave(next)) setSuccess('Presupuesto aceptado y pedido generado.');
               } catch (e) {
                 onError((e as Error).message);
               }
@@ -105,42 +114,47 @@ export default function QuoteRevisionActions({
       </div>
       {!revision.sentAt && !closed && (
         <PermissionForm
-          action="deals,tasks"
+          action={settings.modules.includes('Actividades') ? 'deals,tasks' : 'deals'}
           className="quote-send-inline"
           onSubmit={async (e) => {
             e.preventDefault();
             onError('');
             try {
               const saved = await onSave(
-                markQuoteSent(data, deal.id, revision.id, new Date().toISOString(), due, recordId),
+                markQuoteSent(data, deal.id, revision.id, new Date().toISOString(), due, recordId, {
+                  ...settings.automation,
+                  followUp:
+                    settings.automation.followUp && settings.modules.includes('Actividades'),
+                }),
               );
               if (saved)
-                setSuccess(
-                  'Envío registrado. Trato pendiente del cliente y seguimiento para el ' +
-                    new Date(due + 'T12:00:00').toLocaleDateString('es-ES') +
-                    '.',
-                );
+                setSuccess('Envío registrado. Se han aplicado las automatizaciones configuradas.');
             } catch (e) {
               onError((e as Error).message);
             }
           }}
         >
-          <label>
-            Próximo seguimiento
-            <input
-              type="date"
-              required
-              min={localDay()}
-              value={due}
-              onChange={(e) => setDue(e.target.value)}
-            />
-          </label>
-          <PermissionButton action="deals,tasks" disabled={busy || dirty}>
+          {settings.automation.followUp && settings.modules.includes('Actividades') && (
+            <label>
+              Próximo seguimiento
+              <input
+                type="date"
+                required
+                min={localDay()}
+                value={due}
+                onChange={(e) => setDue(e.target.value)}
+              />
+            </label>
+          )}
+          <PermissionButton
+            action={settings.modules.includes('Actividades') ? 'deals,tasks' : 'deals'}
+            disabled={busy || dirty}
+          >
             Marcar como enviado
           </PermissionButton>
           <p>
-            Registra un envío que ya has realizado. No envía correos. Pasa a «Pendiente del cliente»
-            y crea el seguimiento de prioridad media.
+            Registra un envío que ya has realizado. No envía correos. Aplica las reglas activadas en
+            Configuración del negocio.
           </p>
         </PermissionForm>
       )}

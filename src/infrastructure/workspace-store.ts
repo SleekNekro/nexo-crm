@@ -13,6 +13,7 @@ export function initWorkspaces() {
       await c.query('SELECT pg_advisory_xact_lock(73401922)');
       await c.query(`CREATE TABLE IF NOT EXISTS crm_workspaces(id text PRIMARY KEY,schema_name text UNIQUE NOT NULL,name text NOT NULL,brand jsonb NOT NULL,version integer NOT NULL DEFAULT 1,created_at timestamptz NOT NULL DEFAULT now(),ready boolean NOT NULL DEFAULT true);
  CREATE TABLE IF NOT EXISTS crm_memberships(workspace_id text NOT NULL REFERENCES crm_workspaces(id),user_id text NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,role text NOT NULL CHECK(role IN ('developer','admin','commercial','worker')),profile text NOT NULL,permissions jsonb,active boolean NOT NULL DEFAULT true,external boolean NOT NULL DEFAULT false,access_until timestamptz,work_scope text[],PRIMARY KEY(workspace_id,user_id));`);
+      await c.query('ALTER TABLE crm_workspaces ADD COLUMN IF NOT EXISTS settings jsonb');
       const fresh = await c.query(
         `INSERT INTO crm_workspaces(id,schema_name,name,brand) VALUES('nexo','public','NEXO',$1) ON CONFLICT DO NOTHING RETURNING id`,
         [JSON.stringify(nexoBrand)],
@@ -41,7 +42,7 @@ export async function workspaceForUser(userId: string, platformDeveloper: boolea
   await initWorkspaces();
   const selected = id || (await selectedWorkspaceId());
   const r = await systemPool.query(
-    `SELECT w.id,w.schema_name,w.brand,w.version,m.role,m.profile,m.permissions,m.active,m.external,m.access_until,m.work_scope FROM crm_workspaces w LEFT JOIN crm_memberships m ON m.workspace_id=w.id AND m.user_id=$1 WHERE w.id=$2 AND w.ready AND ($3 OR (m.active AND (m.access_until IS NULL OR m.access_until>now())))`,
+    `SELECT w.id,w.schema_name,w.brand,w.version,w.settings,m.role,m.profile,m.permissions,m.active,m.external,m.access_until,m.work_scope FROM crm_workspaces w LEFT JOIN crm_memberships m ON m.workspace_id=w.id AND m.user_id=$1 WHERE w.id=$2 AND w.ready AND ($3 OR (m.active AND (m.access_until IS NULL OR m.access_until>now())))`,
     [userId, selected, platformDeveloper],
   );
   return r.rows[0] || null;

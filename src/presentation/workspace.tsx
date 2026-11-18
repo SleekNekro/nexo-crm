@@ -1,4 +1,8 @@
 'use client';
+import BusinessSettingsDialog from './components/business-settings';
+import { useBusinessSettings } from './hooks/use-business-settings';
+import { phaseFor } from '../domain/business-settings';
+import CommercialDataTools from './components/commercial-data-tools';
 import { clearLaborDrafts } from './utils/labor-drafts';
 import ActivityCompletion from './components/activity-completion';
 import { nextCommercialStep } from '../domain/commercial-workflow';
@@ -87,6 +91,8 @@ export default function Home() {
 }
 function Workspace({ user }: { user: Identity | null }) {
   const brand = user?.workspace?.brand || nexoBrand;
+  const settings = useBusinessSettings();
+  const [businessSettingsOpen, setBusinessSettingsOpen] = useState(false);
   useEffect(() => {
     document.title = brand.name + ' · Comercial y obras';
   }, [brand.name]);
@@ -252,7 +258,10 @@ function Workspace({ user }: { user: Identity | null }) {
   const focusedCompany =
     view === 'Empresas' ? companies.find((c) => c.id === companyId) : undefined;
   async function stage(d: Deal, s: string) {
-    if (busy || d.stage === s) return;
+    const phase = settings.phases.find((p) => p.id === s);
+    const phaseId = phase?.id;
+    s = phase?.kind || s;
+    if (busy || (d.stage === s && (!phaseId || phaseFor(d, settings)?.id === phaseId))) return;
     if (
       s === 'Ganado' &&
       d.versions.length &&
@@ -267,7 +276,9 @@ function Workspace({ user }: { user: Identity | null }) {
     if (
       ['Ganado', 'Perdido'].includes(s) &&
       !confirm(
-        (s === 'Ganado' ? 'Se generará un pedido si todavía no existe. ' : '') +
+        (s === 'Ganado' && settings.modules.includes('Pedidos')
+          ? 'Se generará un pedido si todavía no existe. '
+          : '') +
           'Los seguimientos pendientes se cancelarán, no se marcarán como realizados. ¿Cerrar el trato como ' +
           s.toLowerCase() +
           '?',
@@ -280,7 +291,19 @@ function Workspace({ user }: { user: Identity | null }) {
       if (!reason?.trim()) return;
     }
     try {
-      await save(changeStage(data!, d.id, s, uid, day(), reason));
+      const next = changeStage(
+        data!,
+        d.id,
+        s,
+        uid,
+        day(),
+        reason,
+        settings.modules.includes('Pedidos'),
+      );
+      if (user && !canAct(user, 'tasks')) next.tasks = data!.tasks;
+      if (phaseId) next.deals.find((x) => x.id === d.id)!.pipelinePhase = phaseId;
+      else delete next.deals.find((x) => x.id === d.id)!.pipelinePhase;
+      await save(next);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -535,6 +558,22 @@ function Workspace({ user }: { user: Identity | null }) {
           </div>
           {user ? (
             <>
+              {user.platformDeveloper && (
+                <button
+                  onClick={() => {
+                    if (
+                      (formDirty || workDirty) &&
+                      !confirm(
+                        'Hay cambios sin guardar. Guardar la configuración recargará la página. ¿Abrir?',
+                      )
+                    )
+                      return;
+                    setBusinessSettingsOpen(true);
+                  }}
+                >
+                  {settings.setupComplete ? 'Configurar negocio' : 'Preparar mi CRM'}
+                </button>
+              )}
               <button onClick={() => setAccounts(true)}>
                 {user.displayName || user.username} · Mi cuenta
               </button>
@@ -874,6 +913,13 @@ function Workspace({ user }: { user: Identity | null }) {
                       onStage={stage}
                     />
                   )}
+                  {['Empresas', 'Contactos'].includes(view) &&
+                    user &&
+                    isAdmin(user.role) &&
+                    canAct(user, 'companies') &&
+                    canView(user, 'Empresas') && (
+                      <CommercialDataTools data={data} onChanged={() => refresh()} />
+                    )}
                   {view === 'Empresas' && (
                     <CompanyList
                       busy={busy}
@@ -1055,6 +1101,13 @@ function Workspace({ user }: { user: Identity | null }) {
                 if (ok) setNotice('Actividad reabierta.');
               });
           }}
+        />
+      )}
+      {businessSettingsOpen && user && data && (
+        <BusinessSettingsDialog
+          user={user}
+          data={data}
+          onClose={() => setBusinessSettingsOpen(false)}
         />
       )}
       {accounts && user && <Accounts user={user} onClose={() => setAccounts(false)} />}

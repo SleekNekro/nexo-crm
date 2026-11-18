@@ -510,7 +510,7 @@ tbody tr:hover {
 }
 .kanban {
   display: grid;
-  grid-template-columns: repeat(4, minmax(205px, 1fr));
+  grid-template-columns: repeat(var(--phase-count, 4), minmax(205px, 1fr));
   gap: 18px;
   overflow-x: auto;
   padding-bottom: 15px;
@@ -3530,9 +3530,27 @@ button.danger:focus-visible {
 }
 
 /* Shared corporate palette, also applied before authentication. */
-:root { --brand-primary: #2563eb; --brand-accent: #eff6ff; --brand-detail: #2563eb; }
-.primary:hover { background: #1d4ed8; border-color: #1d4ed8; }
-.metric.m0 { background: #1e3a8a; border-color: #1e3a8a; }
-.metric.m0 > span, .metric.m0 small { color: #dbeafe; }
-.logo { background: var(--brand-primary); }
-input[type='checkbox'], input[type='radio'] { accent-color: var(--brand-primary); }
+:root {
+  --brand-primary: #2563eb;
+  --brand-accent: #eff6ff;
+  --brand-detail: #2563eb;
+}
+.primary:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+.metric.m0 {
+  background: #1e3a8a;
+  border-color: #1e3a8a;
+}
+.metric.m0 > span,
+.metric.m0 small {
+  color: #dbeafe;
+}
+.logo {
+  background: var(--brand-primary);
+}
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--brand-primary);
+}

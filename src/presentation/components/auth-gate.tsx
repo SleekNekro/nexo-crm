@@ -32,6 +32,35 @@ export default function AuthGate({
       })
       .catch((e) => setError(e.message));
   }, []);
+  useEffect(() => {
+    if (!session?.user) return;
+    const refresh = async () => {
+      try {
+        const r = await fetch('/api/auth', { headers: { 'X-Session-Probe': '1' } });
+        if (!r.ok) return;
+        const next = await r.json();
+        if (
+          next.user &&
+          (next.user.workspace?.version !== session.user?.workspace?.version ||
+            JSON.stringify(next.user.permissions) !== JSON.stringify(session.user?.permissions))
+        ) {
+          setSession(next);
+          window.dispatchEvent(new Event('crm:server-change'));
+        }
+      } catch {}
+    };
+    const focus = () => {
+      if (document.visibilityState === 'visible') void refresh();
+    };
+    const timer = setInterval(() => void refresh(), 45000);
+    window.addEventListener('focus', focus);
+    document.addEventListener('visibilitychange', focus);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', focus);
+      document.removeEventListener('visibilitychange', focus);
+    };
+  }, [session?.user]);
   if (session?.preview || (session?.user && !session.user.mustChange))
     return scoped ? children(session.user) : <p>Preparando empresa…</p>;
   const change = !!session?.user?.mustChange;
