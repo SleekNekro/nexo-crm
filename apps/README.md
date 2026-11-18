@@ -2,6 +2,12 @@
 
 Todos consumen el mismo servidor. Los cambios web llegan desde él; los cambios del contenedor nativo requieren recompilación e instalación. Los clientes beta están en [Releases](https://github.com/SleekNekro/nexo-crm/releases). No incluyen el servidor, una base de datos local ni un modo sin conexión. No se incluyen instaladores de la empresa ni firmas privadas.
 
+## Instalación guiada desde 0.2.0-beta.2
+
+En Mac y Windows puedes elegir **Probar en este ordenador**. Nexo comprueba Docker Desktop, descarga los componentes ya compilados, prepara una base de datos independiente y crea tu cuenta con la contraseña que elijas. Incluye Iniciar, Detener y Abrir CRM. No necesita Git, Python ni comandos. [Guía paso a paso](../docs/desktop-quickstart.md).
+
+**Tengo un servidor** conserva la conexión directa para equipos y clientes móviles. Las instalaciones locales existentes mantienen sus versiones y sus datos; esta beta no implementa actualización automática del servidor.
+
 ## Instalar la beta
 
 1. Instala y arranca el servidor según el README principal; prepara HTTPS para datos reales y móviles.

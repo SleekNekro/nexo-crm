@@ -70,3 +70,11 @@ Los permisos incorporan los módulos activos. La ocultación de interfaz no sust
 La moneda pertenece a la marca y queda congelada en la revisión. La interfaz utiliza un hook por contexto de empresa, sin variables globales de moneda compartidas entre peticiones.
 
 Excel se analiza bajo demanda en el navegador con ExcelJS; fflate comprueba los límites del ZIP antes de cargarlo. No se ejecutan fórmulas y el servidor vuelve a validar el CSV normalizado y sus filas antes de escribir. La guía de funciones y límites está en [docs/business-configuration.md](docs/business-configuration.md).
+
+## Asistente local de escritorio
+
+`apps/desktop/src-tauri/src/local_server.rs` gestiona únicamente la instalación Docker del usuario; `apps/server/compose.yaml` fija los componentes precompilados y limita la escucha a loopback. Una configuración con secretos aleatorios y un nombre de proyecto único separa sus volúmenes de otros proyectos. Las operaciones tienen límites de tiempo y un bloqueo de archivo entre procesos; detener usa `compose stop`, nunca borra volúmenes.
+
+El comando `setup_action` solo acepta llamadas de la ventana local `setup` y su origen empaquetado. La ventana remota del CRM no puede gestionar Docker. Las acciones son una lista cerrada y los argumentos se pasan directamente al ejecutable, sin intérprete de comandos. La contraseña inicial va por stdin a `setup-local-admin.mjs`, que bloquea la tabla en una transacción y solo crea una cuenta si no existe ninguna. No guarda la contraseña en archivos ni permite restablecer cuentas existentes.
+
+Las imágenes se construyen para AMD64 y ARM64, pasan una instalación desechable con inicio de sesión y parada/arranque, y se publican en un único paquete GHCR vinculado al repositorio. El paquete debe ser público para que el usuario no necesite cuenta de GitHub. Los instaladores contienen etiquetas de versión fijas; la instalación conserva su Compose y no migra silenciosamente a otra versión.

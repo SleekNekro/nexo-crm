@@ -6,7 +6,7 @@ Soy [SleekNekro](https://github.com/SleekNekro) y estoy construyendo Nexo: un CR
 
 **Open source · Licencia MIT · Hecho con programación agéntica**
 
-[Descargar la beta 0.2.0-beta.1 para Mac, Windows y Android](https://github.com/SleekNekro/nexo-crm/releases/tag/v0.2.0-beta.1) · Requiere un servidor Nexo.
+[Descargar la beta 0.2.0-beta.2 para Mac, Windows y Android](https://github.com/SleekNekro/nexo-crm/releases/tag/v0.2.0-beta.2) · Con instalación guiada del servidor para Mac y Windows.
 
 ![Panel de Nexo CRM con datos ficticios](docs/screenshots/dashboard.jpg)
 
@@ -77,7 +77,21 @@ La misma web adaptada a una pantalla pequeña. Captura del navegador a tamaño m
 
 </details>
 
-## Pruébalo en tu equipo
+## Pruébalo sin programar
+
+1. Descarga la aplicación de tu equipo desde [Releases](https://github.com/SleekNekro/nexo-crm/releases).
+2. Abre Nexo y elige **Probar en este ordenador**. Si falta Docker Desktop, el asistente te lleva a su descarga; instálalo y ábrelo.
+3. Pulsa **Comprobar**, elige tu contraseña y selecciona **Preparar mi CRM**. Nexo descarga y prepara el servidor automáticamente.
+4. Pulsa **Abrir CRM**, entra con el usuario `developer` y tu contraseña, y elige empezar vacío o cargar ejemplos.
+
+No necesitas Git, Python ni escribir comandos. La primera instalación necesita Internet y varios GB libres. Los botones **Iniciar**, **Detener** y **Abrir CRM** permiten usarlo después; detener conserva los datos.
+
+[Guía paso a paso y límites de la beta](docs/desktop-quickstart.md). Si ya tienes un servidor, elige **Tengo un servidor**. La prueba local solo es accesible desde ese ordenador; para móviles o uso compartido necesitas un servidor accesible por HTTPS.
+
+<details>
+<summary>Instalación manual para desarrollo</summary>
+
+### Instalación manual
 
 Necesitas **Docker con Compose, Git, Bash, Python 3 y OpenSSL**. En Windows, utiliza WSL2 con Docker integrado.
 
@@ -87,7 +101,7 @@ cd nexo-crm
 bash scripts/start.sh
 ```
 
-Abre **http://localhost:8180**. En la primera instalación, el script crea el usuario `developer` y muestra una contraseña temporal en la terminal. Al entrar tendrás que cambiarla. La demo incluye empresas, contactos, tratos y productos ficticios para empezar a explorar.
+Abre **http://localhost:8180**. En la primera instalación, el script crea el usuario `developer` y muestra una contraseña temporal en la terminal. Al entrar tendrás que cambiarla. Desde «Preparar mi CRM» puedes elegir cargar empresas, contactos, tratos y productos ficticios para explorar.
 
 ```bash
 docker compose down    # Detener sin borrar los datos
@@ -97,6 +111,8 @@ bash scripts/start.sh  # Volver a arrancar
 Empieza por una empresa, crea un presupuesto, guarda una revisión y abre su PDF. Desde ahí puedes probar el seguimiento, la aceptación y el pedido.
 
 La instalación escucha solo en tu equipo y conserva los datos entre reinicios. Antes de usar datos reales o abrirla a Internet, prepara HTTPS, copias y controles de acceso: [notas de seguridad](SECURITY.md).
+
+</details>
 
 ## ¿Y en el móvil o en escritorio?
 
