@@ -1,6 +1,11 @@
 name: Release beta
 on:
   workflow_dispatch:
+    inputs:
+      android_only:
+        description: Compilar solo Android (los paquetes se publican tras revisión y firma local)
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -21,6 +26,7 @@ jobs:
       - run: npm run build
       - run: npm run typecheck
   desktop:
+    if: ${{ !inputs.android_only }}
     needs: checks
     strategy:
       fail-fast: false
@@ -87,46 +93,17 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
-      - name: Restore beta key
-        env:
-          KEYSTORE: ${{ secrets.ANDROID_BETA_KEYSTORE }}
-        run: printf '%s' "$KEYSTORE" | base64 --decode > "$RUNNER_TEMP/nexo-beta.jks"
-      - name: Build signed APK
+      - name: Build unsigned APK
         working-directory: apps/android
-        env:
-          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/nexo-beta.jks
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_BETA_PASSWORD }}
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease lintRelease
-      - name: Verify APK
+      - name: Package unsigned APK for local signing
         run: |
           mkdir -p dist
-          cp apps/android/app/build/outputs/apk/release/*.apk dist/Nexo-CRM-Android-beta.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/Nexo-CRM-Android-beta.apk
+          cp apps/android/app/build/outputs/apk/release/*unsigned.apk dist/Nexo-CRM-Android-unsigned.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: client-Android
+          name: unsigned-Android
           path: dist/*
           if-no-files-found: error
-      - name: Remove signing key
-        if: always()
-        run: rm -f "$RUNNER_TEMP/nexo-beta.jks"
-  publish:
-    needs: [desktop, android]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: client-*
-          merge-multiple: true
-          path: dist
-      - run: sha256sum * > SHA256SUMS.txt
-        working-directory: dist
-      - name: Publish prerelease
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release create v0.2.0-beta.1 dist/* --target "$GITHUB_SHA" --prerelease --title 'Nexo CRM v0.2.0-beta.1' --notes-file docs/release-notes/v0.2.0-beta.1.md

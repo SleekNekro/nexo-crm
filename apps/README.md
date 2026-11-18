@@ -68,7 +68,7 @@ cd apps/android
 ./gradlew assembleRelease -PcrmServer=https://crm.example.com
 ```
 
-La compilación release necesita firma. El workflow de beta utiliza `ANDROID_BETA_KEYSTORE` (PKCS12 codificado en base64) y `ANDROID_BETA_PASSWORD` de GitHub Secrets. La clave nunca se incluye en Git ni en los artefactos. Para compilar tu variante, crea tu propia clave con alias `nexo-beta` y proporciona las variables de entorno `ANDROID_KEYSTORE_PATH` y `ANDROID_KEYSTORE_PASSWORD`. Conserva una copia segura: las actualizaciones requieren la misma firma y un `versionCode` mayor. No utilices la firma de otra empresa o proyecto.
+La compilación release necesita firma. El workflow genera un APK sin firmar para su revisión y firma local con `apksigner`; ese artefacto intermedio no es instalable y no debe publicarse. La clave nunca se envía a GitHub ni se incluye en Git o en los artefactos. Para compilar tu variante, crea tu propia clave con alias `nexo-beta` y proporciona las variables de entorno `ANDROID_KEYSTORE_PATH` y `ANDROID_KEYSTORE_PASSWORD`. Conserva una copia segura: las actualizaciones requieren la misma firma y un `versionCode` mayor. No utilices la firma de otra empresa o proyecto.
 
 Release exige HTTPS. Antes de distribuir, comprueba inicio/cierre de sesión, fotos, selector de archivos, impresión/PDF, botón Atrás y pérdida de red en un teléfono real. Esta edición no afirma haber superado esas pruebas en todos los dispositivos.
 
@@ -78,6 +78,6 @@ La web contiene manifiesto e iconos. Para una instalación con las capacidades e
 
 ## Estado
 
-El workflow `Release beta` comprueba la web, ejecuta las pruebas Rust de escritorio, compila ambos Mac y Windows, y compila y analiza Android antes de publicar. Genera sumas SHA-256. Estas comprobaciones no equivalen a validación funcional de inicio de sesión, cámara y PDF en cada sistema: la beta requiere pruebas reales, especialmente Android.
+El workflow `Release beta` comprueba la web, ejecuta las pruebas Rust de escritorio, compila ambos Mac y Windows, y compila y analiza Android. Después se firma el APK localmente, se verifican los paquetes y se publican manualmente con sumas SHA-256. Estas comprobaciones no equivalen a validación funcional de inicio de sesión, cámara y PDF en cada sistema: la beta requiere pruebas reales, especialmente Android.
 
-La publicación se ejecuta manualmente en GitHub Actions. La versión y las notas están fijadas en el workflow: para una siguiente beta, incrementa las versiones de los paquetes, Cargo, Tauri y Android (también `versionCode`), cambia el tag de publicación y añade sus notas. No reemplaces artefactos de una versión ya publicada.
+La publicación se ejecuta manualmente en GitHub Actions. Para una siguiente beta, incrementa las versiones de los paquetes, Cargo, Tauri y Android (también `versionCode`), añade sus notas y crea un nuevo tag al publicar. La opción `android_only` permite recompilar únicamente Android. No reemplaces artefactos de una versión ya publicada.

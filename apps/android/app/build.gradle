@@ -19,7 +19,7 @@ android {
     }
     buildTypes {
         debug { applicationIdSuffix '.debug'; manifestPlaceholders = [cleartext: 'true'] }
-        release { applicationIdSuffix '.beta'; signingConfig signingConfigs.beta; minifyEnabled false; manifestPlaceholders = [cleartext: 'false'] }
+        release { applicationIdSuffix '.beta'; if (System.getenv('ANDROID_KEYSTORE_PATH')) signingConfig signingConfigs.beta; minifyEnabled false; manifestPlaceholders = [cleartext: 'false'] }
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
