@@ -65,6 +65,26 @@ fn run(
     seconds: u64,
 ) -> Result<String, String> {
     let mut cmd = Command::new(docker());
+    // Compose must use this installation's .env, never unrelated shell settings.
+    for key in [
+        "COMPOSE_PROJECT_NAME",
+        "COMPOSE_FILE",
+        "COMPOSE_PROFILES",
+        "POSTGRES_PASSWORD",
+        "CRM_RUNTIME_PASSWORD",
+        "AUTH_ENCRYPTION_KEY",
+        "CRM_GATEWAY_TOKEN",
+        "CRM_DEPLOYMENT_ID",
+        "APP_PORT",
+        "ADMIN_PORT",
+        "BIND_ADDRESS",
+        "CRM_PUBLIC_URL",
+        "COOKIE_SECURE",
+        "CRM_REMINDER_TOKEN",
+    ] {
+        cmd.env_remove(key);
+    }
+
     cmd.args(args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -116,7 +136,17 @@ fn run(
     }
 }
 fn compose(dir: &Path, args: &[&str], input: Option<&str>, seconds: u64) -> Result<String, String> {
-    let mut all = vec!["compose", "--env-file", ".env", "-f", "compose.yaml"];
+    let values = env(dir)?;
+    let project = values.get("COMPOSE_PROJECT_NAME").ok_or_else(failure)?;
+    let mut all = vec![
+        "compose",
+        "--project-name",
+        project.as_str(),
+        "--env-file",
+        ".env",
+        "-f",
+        "compose.yaml",
+    ];
     all.extend_from_slice(args);
     run(&all, Some(dir), input, seconds)
 }
@@ -131,6 +161,17 @@ fn parse_env(text: &str) -> Result<BTreeMap<String, String>, String> {
         .filter_map(|l| l.split_once('='))
         .map(|(k, v)| (k.to_string(), v.to_string()))
         .collect();
+    if !values
+        .get("COMPOSE_PROJECT_NAME")
+        .and_then(|v| v.strip_prefix("nexo-local-"))
+        .map(|v| v.len() == 12 && v.bytes().all(|b| b.is_ascii_hexdigit()))
+        .unwrap_or(false)
+    {
+        return Err(
+            "El identificador del servidor local no es válido. No se han modificado los datos."
+                .into(),
+        );
+    }
     for key in [
         "POSTGRES_PASSWORD",
         "CRM_RUNTIME_PASSWORD",
@@ -199,12 +240,40 @@ fn prepare(dir: &Path) -> Result<(), String> {
 fn ready(dir: &Path) -> bool {
     compose(dir,&["exec","-T","app","node","-e","fetch('http://127.0.0.1:3000/api/auth',{signal:AbortSignal.timeout(4000)}).then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"],None,10).is_ok()
 }
-pub fn status(dir: &Path) -> Status {
-    let installed = dir.join(".env").exists();
-    let docker = run(&["info", "--format", "{{.OSType}}"], None, None, 15)
+fn local_endpoint(endpoint: &str) -> bool {
+    endpoint.starts_with("unix://") || endpoint.starts_with("npipe://")
+}
+fn docker_ready() -> bool {
+    if std::env::var("DOCKER_HOST")
+        .map(|v| !v.is_empty() && !local_endpoint(&v))
+        .unwrap_or(false)
+    {
+        return false;
+    }
+    if !run(
+        &[
+            "context",
+            "inspect",
+            "--format",
+            "{{.Endpoints.docker.Host}}",
+        ],
+        None,
+        None,
+        10,
+    )
+    .map(|v| local_endpoint(&v))
+    .unwrap_or(false)
+    {
+        return false;
+    }
+    run(&["info", "--format", "{{.OSType}}"], None, None, 15)
         .map(|v| v == "linux")
         .unwrap_or(false)
-        && run(&["compose", "version"], None, None, 10).is_ok();
+        && run(&["compose", "version"], None, None, 10).is_ok()
+}
+pub fn status(dir: &Path) -> Status {
+    let installed = dir.join(".env").exists();
+    let docker = docker_ready();
     let url = env(dir)
         .ok()
         .and_then(|v| v.get("CRM_PUBLIC_URL").cloned())
@@ -313,6 +382,9 @@ pub fn start(dir: &Path, password: &str, progress: impl Fn(&str)) -> Result<Stat
 }
 pub fn stop(dir: &Path) -> Result<Status, String> {
     let _operation = operation_lock(dir)?;
+    if !docker_ready() {
+        return Err("Abre Docker Desktop y selecciona su contexto local.".into());
+    }
     if dir.join(".env").exists() {
         compose(dir, &["stop"], None, 90)?;
     }
@@ -321,6 +393,13 @@ pub fn stop(dir: &Path) -> Result<Status, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn remote_docker_is_rejected() {
+        assert!(local_endpoint("unix:///var/run/docker.sock"));
+        assert!(local_endpoint("npipe:////./pipe/dockerDesktopLinuxEngine"));
+        assert!(!local_endpoint("ssh://production"));
+        assert!(!local_endpoint("tcp://192.168.0.10:2375"));
+    }
     #[test]
     fn operations_cannot_overlap() {
         let dir = std::env::temp_dir().join(format!("nexo-lock-test-{}", random().unwrap()));

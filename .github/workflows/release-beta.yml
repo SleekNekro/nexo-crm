@@ -52,7 +52,7 @@ jobs:
           targets: ${{ matrix.target }}
       - run: npm ci
         working-directory: apps/desktop
-      - run: cargo test --locked
+      - run: cargo test --locked --release
         working-directory: apps/desktop/src-tauri
       - name: Build Mac
         if: runner.os == 'macOS'
