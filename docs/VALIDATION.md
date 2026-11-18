@@ -18,3 +18,13 @@ La prueba local de instalación utilizó la web compilada y una base PostgreSQL 
 - Prueba HTTP en PostgreSQL desechable: importación, fusión, notas, conflictos, configuración, campos en uso, etapas en uso, desactivar/reactivar módulos, moneda congelada, arranque vacío y carga explícita de ejemplos en otro espacio.
 - Revisión de pestañas del asistente con Chrome automatizado a 1440 × 1000 y 390 × 844, sin excepciones de JavaScript ni desbordamiento horizontal del documento.
 - Auditoría npm sin vulnerabilidades conocidas después de actualizar las dependencias del lector Excel. No equivale a una auditoría de seguridad completa ni certifica todos los dispositivos.
+
+## Beta 0.2.0-beta.1 (18 de noviembre de 2026)
+
+- 182 pruebas web superadas, compilación de producción y TypeScript correctos en GitHub Actions.
+- Clientes Tauri compilados para macOS arm64, macOS x86_64 y Windows x64; pruebas Rust superadas en los tres trabajos. [Compilaciones de escritorio](https://github.com/SleekNekro/nexo-crm/actions/runs/44268287858).
+- Android: `assembleRelease` y `lintRelease` correctos. [Compilación Android](https://github.com/SleekNekro/nexo-crm/actions/runs/44269396691). El primer intento falló en la descarga de un paquete retirado del SDK; el workflow corregido solicita paquetes explícitos.
+- APK alineado y firmado localmente; verificación criptográfica v2/v3 correcta. Paquete `com.nexo.crm.beta`, versión 0.2.0-beta.1, código 3, Android mínimo 8.
+- ZIP de ambos Mac: arquitectura y firma ad hoc comprobadas. Arranque del cliente Apple Silicon en Mac real; la inspección automatizada de su ventana no estuvo disponible.
+- Instalador NSIS de Windows generado correctamente. Pendiente comprobar esta beta Nexo en un Windows real, así como cámara, sesión y PDF en Android físico. La validación histórica de SATINE no se extrapola a estos binarios.
+- Los paquetes descargables tienen sumas SHA-256; ninguna clave de firma ni datos de empresa se incluyen en la publicación.
