@@ -30,7 +30,7 @@ La prueba escucha únicamente en **este ordenador**. El asistente busca un par d
 
 ## Límites de esta beta
 
-- Docker Desktop sigue siendo un requisito externo y puede necesitar permisos del sistema para instalarse.
+- Docker Desktop sigue siendo un requisito externo y puede necesitar permisos del sistema para instalarse. Sus requisitos de sistema son independientes de los del cliente Nexo: compruébalos en su página de descarga. Si tu equipo no lo admite, puedes conectar Nexo a un servidor instalado en otro equipo.
 - Mac todavía no tiene notarización de Apple y Windows no tiene firma comercial. Consulta las notas de la release si aparece un aviso; no desactives globalmente la seguridad del sistema.
 - El asistente conserva las versiones de servidor de la instalación existente: todavía no realiza migraciones automáticas a nuevas versiones ni ofrece copias de seguridad desde esta pantalla.
 - La compilación y las pruebas automatizadas no sustituyen la prueba completa en cada equipo real.

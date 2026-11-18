@@ -35,3 +35,5 @@ La prueba local de instalación utilizó la web compilada y una base PostgreSQL 
 - Imágenes AMD64 y ARM64: instalación desechable, creación de la cuenta elegida, inicio de sesión HTTP, rechazo de sobrescritura de la cuenta, rol PostgreSQL sin privilegios de superusuario y conservación tras detener/arrancar. [Ejecución](https://github.com/SleekNekro/nexo-crm/actions/runs/44285289730).
 - Asistente en Chrome con IPC simulado a 720 × 900 y 390 × 844: validación de contraseña repetida, campos vaciados al enviar, iniciar/abrir/detener, conservación del estado de la cuenta, conexión remota, ausencia de Docker, sin errores JavaScript ni desbordamiento horizontal. Esta comprobación no sustituye la interacción con el WebView nativo en un equipo real.
 - Las claves de la instalación se generan por usuario; no se reutilizan datos, cuentas ni volúmenes de SATINE. La firma Android sigue realizándose localmente.
+
+- Descarga anónima de los manifiestos app, PDF y gateway comprobada, con variantes AMD64 y ARM64. Los usuarios no necesitan credenciales de GitHub. [Compilación final de clientes](https://github.com/SleekNekro/nexo-crm/actions/runs/44286638883).
