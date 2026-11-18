@@ -1,5 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+mod local_server;
 use serde::{Deserialize, Serialize};
+use std::sync::atomic::AtomicBool;
+static SETUP_BUSY: AtomicBool = AtomicBool::new(false);
 use std::sync::atomic::{AtomicUsize, Ordering};
 use tauri::menu::{Menu, SubmenuBuilder};
 use tauri::webview::NewWindowResponse;
@@ -41,16 +44,22 @@ fn allows_document_navigation(url: &Url, origin: &url::Origin) -> bool {
 
 fn main() {
     tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![setup_action])
         .setup(|app| {
             let menu = Menu::default(app.handle())?;
             menu.append(
                 &SubmenuBuilder::new(app.handle(), "CRM")
+                    .text("crm-setup", "Conexión y servidor local")
                     .text("crm-reload", "Recargar")
                     .text("crm-print", "Imprimir / Guardar PDF")
                     .build()?,
             )?;
             app.set_menu(menu)?;
             app.on_menu_event(|app, event| {
+                if event.id().as_ref() == "crm-setup" {
+                    let _ = show_setup(app);
+                    return;
+                }
                 if let Some(window) = app
                     .webview_windows()
                     .values()
@@ -71,66 +80,134 @@ fn main() {
             let raw = std::fs::read_to_string(&path)
                 .ok()
                 .or_else(|| option_env!("NEXO_DEFAULT_SERVER_JSON").map(String::from));
+            let local = app
+                .path()
+                .app_config_dir()?
+                .join("local-server/.env")
+                .exists();
             if let Some(url) = raw
                 .and_then(|value| serde_json::from_str::<ServerConfig>(&value).ok())
                 .and_then(|config| server_url(&config).ok())
+                .filter(|_| !local)
             {
                 open_crm(app.handle(), url)?;
             } else {
-                let handle = app.handle().clone();
-                WebviewWindowBuilder::new(app, "setup", WebviewUrl::App("index.html".into()))
-                    .title("Conectar · NEXO CRM Beta")
-                    .inner_size(620.0, 580.0)
-                    .on_navigation(move |url| {
-                        if url.scheme() != "nexo-setup" {
-                            return url.scheme() == "tauri"
-                                || url.host_str() == Some("tauri.localhost");
-                        }
-                        let config = ServerConfig {
-                            url: url
-                                .query_pairs()
-                                .find(|(k, _)| k == "url")
-                                .map(|(_, v)| v.into_owned())
-                                .unwrap_or_default(),
-                            allow_local_http: url
-                                .query_pairs()
-                                .any(|(k, v)| k == "local" && v == "1"),
-                        };
-                        let app = handle.clone();
-                        // Window creation must not block the navigation callback on Windows.
-                        std::thread::spawn(move || {
-                            let result = (|| -> Result<(), String> {
-                                let url = server_url(&config)?;
-                                let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
-                                std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-                                std::fs::write(
-                                    dir.join("server.json"),
-                                    serde_json::to_vec(&config).unwrap(),
-                                )
-                                .map_err(|e| e.to_string())?;
-                                open_crm(&app, url).map_err(|e| e.to_string())?;
-                                if let Some(w) = app.get_webview_window("setup") {
-                                    let _ = w.close();
-                                }
-                                Ok(())
-                            })();
-                            if let Err(message) = result {
-                                if let Some(w) = app.get_webview_window("setup") {
-                                    let _ = w.eval(&format!(
-                                        "showError({})",
-                                        serde_json::to_string(&message).unwrap()
-                                    ));
-                                }
-                            }
-                        });
-                        false
-                    })
-                    .build()?;
+                show_setup(app.handle())?;
             }
             Ok(())
         })
         .run(tauri::generate_context!())
         .expect("No se pudo abrir NEXO CRM");
+}
+
+fn bundled_setup(label: &str, url: &Url) -> bool {
+    label == "setup"
+        && ((url.scheme() == "tauri" && url.host_str() == Some("localhost"))
+            || (matches!(url.scheme(), "http" | "https")
+                && url.host_str() == Some("tauri.localhost")))
+}
+fn show_setup(app: &tauri::AppHandle) -> tauri::Result<()> {
+    if let Some(w) = app.get_webview_window("setup") {
+        w.show()?;
+        w.set_focus()?;
+        return Ok(());
+    }
+    WebviewWindowBuilder::new(app, "setup", WebviewUrl::App("index.html".into()))
+        .title("Nexo · Conexión y servidor local")
+        .inner_size(720.0, 780.0)
+        .min_inner_size(380.0, 600.0)
+        .on_navigation(|url| bundled_setup("setup", url))
+        .on_new_window(|_, _| NewWindowResponse::Deny)
+        .build()?;
+    Ok(())
+}
+#[tauri::command]
+async fn setup_action(
+    window: tauri::WebviewWindow,
+    action: String,
+    password: Option<String>,
+    url: Option<String>,
+    allow_local_http: Option<bool>,
+) -> Result<serde_json::Value, String> {
+    if !bundled_setup(
+        window.label(),
+        &window.url().map_err(|_| "Origen no permitido")?,
+    ) {
+        return Err("Solo el asistente local puede gestionar Docker.".into());
+    }
+    if SETUP_BUSY
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        return Err("Hay una operación en curso. Espera a que termine.".into());
+    }
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        struct Guard;
+        impl Drop for Guard {
+            fn drop(&mut self) {
+                SETUP_BUSY.store(false, Ordering::SeqCst);
+            }
+        }
+        let _guard = Guard;
+        let app = window.app_handle();
+        let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+        let local = dir.join("local-server");
+        let value = match action.as_str() {
+            "status" => serde_json::to_value(local_server::status(&local)).unwrap(),
+            "start" => {
+                let state =
+                    local_server::start(&local, password.as_deref().unwrap_or(""), |message| {
+                        let _ = window.eval(&format!(
+                            "receiveProgress({})",
+                            serde_json::to_string(message).unwrap()
+                        ));
+                    })?;
+                serde_json::to_value(state).unwrap()
+            }
+            "stop" => serde_json::to_value(local_server::stop(&local)?).unwrap(),
+            "open-local" | "connect" => {
+                let config = if action == "open-local" {
+                    let state = local_server::status(&local);
+                    if !state.ready {
+                        return Err("Inicia primero tu servidor local.".into());
+                    }
+                    ServerConfig {
+                        url: state.url,
+                        allow_local_http: true,
+                    }
+                } else {
+                    ServerConfig {
+                        url: url.unwrap_or_default(),
+                        allow_local_http: allow_local_http.unwrap_or(false),
+                    }
+                };
+                let target = server_url(&config)?;
+                if let Some(w) = app.get_webview_window("main") {
+                    if w.url().map_err(|e| e.to_string())?.origin() != target.origin() {
+                        return Err(
+                            "Cierra la ventana del CRM antes de cambiar de servidor.".into()
+                        );
+                    }
+                    w.set_focus().map_err(|e| e.to_string())?;
+                } else {
+                    open_crm(app, target).map_err(|e| e.to_string())?;
+                }
+                std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+                std::fs::write(
+                    dir.join("server.json"),
+                    serde_json::to_vec(&config).unwrap(),
+                )
+                .map_err(|e| e.to_string())?;
+                window.hide().map_err(|e| e.to_string())?;
+                serde_json::json!({"opened":true})
+            }
+            _ => return Err("Operación no permitida".into()),
+        };
+        Ok(value)
+    })
+    .await
+    .map_err(|_| "No se pudo completar la operación".to_string())?;
+    result
 }
 
 fn open_crm(app: &tauri::AppHandle, url: Url) -> tauri::Result<()> {
@@ -139,7 +216,8 @@ fn open_crm(app: &tauri::AppHandle, url: Url) -> tauri::Result<()> {
     let handle = app.clone();
     let sequence = AtomicUsize::new(0);
     let print_handle = app.clone();
-    WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
+    let close_handle = app.clone();
+    let window = WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
         .user_agent("Mozilla/5.0 AppleWebKit/605.1.15 NexoDesktop/0.1")
         .title("NEXO CRM")
         .inner_size(1280.0, 850.0)
@@ -180,6 +258,11 @@ fn open_crm(app: &tauri::AppHandle, url: Url) -> tauri::Result<()> {
             }
         })
         .build()?;
+    window.on_window_event(move |event| {
+        if matches!(event, tauri::WindowEvent::Destroyed) {
+            let _ = show_setup(&close_handle);
+        }
+    });
     Ok(())
 }
 
@@ -209,6 +292,24 @@ mod tests {
         }
     }
 
+    #[test]
+    fn setup_is_never_remote() {
+        assert!(bundled_setup(
+            "setup",
+            &Url::parse("tauri://localhost/index.html").unwrap()
+        ));
+        assert!(!bundled_setup(
+            "main",
+            &Url::parse("tauri://localhost/index.html").unwrap()
+        ));
+        for url in [
+            "https://crm.example.com",
+            "http://localhost:8180",
+            "https://tauri.localhost.evil.com",
+        ] {
+            assert!(!bundled_setup("setup", &Url::parse(url).unwrap()));
+        }
+    }
     #[test]
     fn server_boundaries() {
         for url in ["https://crm.example.com", "https://192.168.0.10:8443"] {

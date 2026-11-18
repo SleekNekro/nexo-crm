@@ -1,0 +1,56 @@
+name: Server images
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: write
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build images
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          docker build --target app -t ghcr.io/sleeknekro/nexo-crm:app-0.2.0-beta.2-$ARCH .
+          docker build --target pdf -t ghcr.io/sleeknekro/nexo-crm:pdf-0.2.0-beta.2-$ARCH .
+          docker build -t ghcr.io/sleeknekro/nexo-crm:gateway-0.2.0-beta.2-$ARCH services/gateway
+      - name: Verify a fresh installation and restart
+        env:
+          IMAGE_ARCH: ${{ matrix.arch }}
+        run: python3 scripts/test-local-installer.py
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push verified images
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          for component in app pdf gateway; do
+            docker push ghcr.io/sleeknekro/nexo-crm:$component-0.2.0-beta.2-$ARCH
+          done
+  manifests:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+      - run: |
+          for component in app pdf gateway; do
+            docker buildx imagetools create --tag ghcr.io/sleeknekro/nexo-crm:$component-0.2.0-beta.2 ghcr.io/sleeknekro/nexo-crm:$component-0.2.0-beta.2-amd64 ghcr.io/sleeknekro/nexo-crm:$component-0.2.0-beta.2-arm64
+          done
