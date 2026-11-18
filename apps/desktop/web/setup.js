@@ -28,7 +28,7 @@ for(const mode of ['local','remote'])el(`${mode}-tab`).onclick=()=>{
 };
 el('install').onsubmit=event=>{
  event.preventDefault();const password=el('password').value;
- if(!state?.hasAccount&&(password.length<12||password.length>128||password!==el('repeat').value)){el('error').textContent='Escribe la misma contraseña de 12 a 128 caracteres en ambos campos.';return;}
+ if(!state?.hasAccount&&(password.length<8||password.length>128||password!==el('repeat').value)){el('error').textContent='Escribe la misma contraseña de 8 a 128 caracteres en ambos campos.';return;}
  el('password').value='';el('repeat').value='';perform('start',{password});
 };
 el('connect').onsubmit=event=>{event.preventDefault();perform('connect',{url:el('server').value.trim(),allowLocalHttp:el('http').checked});};

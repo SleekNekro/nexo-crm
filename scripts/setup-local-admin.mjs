@@ -17,8 +17,8 @@ try {
     await db.query('ROLLBACK');
     console.log(JSON.stringify({ created: false }));
   } else {
-    if (typeof password !== 'string' || password.length < 12 || password.length > 128)
-      throw Error('Contraseña de 12 a 128 caracteres requerida');
+    if (typeof password !== 'string' || password.length < 8 || password.length > 128)
+      throw Error('Contraseña de 8 a 128 caracteres requerida');
     const salt = randomBytes(16).toString('hex');
     const hash = salt + ':' + scryptSync(password, salt, 64).toString('hex');
     await db.query(

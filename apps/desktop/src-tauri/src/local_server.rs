@@ -317,13 +317,16 @@ fn operation_lock(dir: &Path) -> Result<fs::File, String> {
     })?;
     Ok(file)
 }
+fn valid_initial_password(password: &str) -> bool {
+    (8..=128).contains(&password.encode_utf16().count())
+}
 pub fn start(dir: &Path, password: &str, progress: impl Fn(&str)) -> Result<Status, String> {
     let _operation = operation_lock(dir)?;
     if !status(dir).docker {
         return Err("Abre Docker Desktop y espera a que termine de arrancar.".into());
     }
-    if !dir.join("initialized").exists() && !(12..=128).contains(&password.encode_utf16().count()) {
-        return Err("Elige una contraseña de 12 a 128 caracteres para la cuenta developer.".into());
+    if !dir.join("initialized").exists() && !valid_initial_password(password) {
+        return Err("Elige una contraseña de 8 a 128 caracteres para la cuenta developer.".into());
     }
     prepare(dir)?;
     progress("Descargando componentes. La primera vez puede tardar varios minutos…");
@@ -393,6 +396,13 @@ pub fn stop(dir: &Path) -> Result<Status, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn initial_password_boundaries() {
+        assert!(!valid_initial_password("1234567"));
+        assert!(valid_initial_password("12345678"));
+        assert!(valid_initial_password(&"x".repeat(128)));
+        assert!(!valid_initial_password(&"x".repeat(129)));
+    }
     #[test]
     fn remote_docker_is_rejected() {
         assert!(local_endpoint("unix:///var/run/docker.sock"));

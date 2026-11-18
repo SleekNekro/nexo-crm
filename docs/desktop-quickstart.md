@@ -7,7 +7,7 @@ El asistente está disponible desde **0.2.0-beta.2**, para Mac Intel, Mac Apple 
 1. Descarga la aplicación de tu equipo desde [Releases](https://github.com/SleekNekro/nexo-crm/releases). En Mac, descomprime el ZIP y lleva NEXO CRM a Aplicaciones; en Windows, ejecuta el instalador.
 2. Abre Nexo y elige **Probar en este ordenador**.
 3. Si falta Docker Desktop, pulsa **Descargar Docker Desktop**. Instálalo siguiendo sus indicaciones y condiciones de licencia; ábrelo y espera a que arranque. En Windows puede pedir WSL2, virtualización o reiniciar el ordenador; utiliza contenedores Linux.
-4. Vuelve a Nexo y pulsa **Comprobar**. Elige tu contraseña (de 12 a 128 caracteres), repítela y pulsa **Preparar mi CRM**.
+4. Vuelve a Nexo y pulsa **Comprobar**. Elige tu contraseña (de 8 a 128 caracteres), repítela y pulsa **Preparar mi CRM**.
 5. Espera a que se descarguen y arranquen los componentes. Necesitas Internet y varios GB libres la primera vez; no hace falta instalar Git, Python ni herramientas de programación.
 6. Pulsa **Abrir CRM**. Tu usuario inicial es **developer** y la contraseña es la que acabas de elegir.
 7. Dentro del CRM, pulsa **Preparar mi CRM** para configurar tu negocio. Puedes empezar vacío o cargar ejemplos ficticios.
