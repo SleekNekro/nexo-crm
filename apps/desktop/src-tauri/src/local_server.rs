@@ -45,6 +45,24 @@ fn docker() -> PathBuf {
         .find(|p| p.is_file())
         .unwrap_or_else(|| "docker".into())
 }
+fn docker_process_path(binary: &Path) -> Result<std::ffi::OsString, String> {
+    let mut paths = Vec::new();
+    if binary.is_absolute() {
+        if let Some(parent) = binary.parent() {
+            paths.push(parent.to_path_buf());
+        }
+    }
+    if let Ok(actual) = binary.canonicalize() {
+        if let Some(parent) = actual.parent() {
+            paths.push(parent.to_path_buf());
+        }
+    }
+    if let Some(current) = std::env::var_os("PATH") {
+        paths.extend(std::env::split_paths(&current));
+    }
+    std::env::join_paths(paths)
+        .map_err(|_| "No se ha podido preparar el entorno de Docker Desktop.".into())
+}
 fn capture(mut pipe: impl Read) -> Vec<u8> {
     let mut result = Vec::new();
     let mut buf = [0u8; 8192];
@@ -64,7 +82,9 @@ fn run(
     input: Option<&str>,
     seconds: u64,
 ) -> Result<String, String> {
-    let mut cmd = Command::new(docker());
+    let binary = docker();
+    let mut cmd = Command::new(&binary);
+    cmd.env("PATH", docker_process_path(&binary)?);
     // Compose must use this installation's .env, never unrelated shell settings.
     for key in [
         "COMPOSE_PROJECT_NAME",
@@ -396,6 +416,12 @@ pub fn stop(dir: &Path) -> Result<Status, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn desktop_process_can_find_docker_helpers() {
+        let folder = std::env::temp_dir().join("nexo-helper-path-test");
+        let path = docker_process_path(&folder.join("docker")).unwrap();
+        assert!(std::env::split_paths(&path).any(|p| p == folder));
+    }
     #[test]
     fn initial_password_boundaries() {
         assert!(!valid_initial_password("1234567"));
