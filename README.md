@@ -6,7 +6,7 @@ Soy [SleekNekro](https://github.com/SleekNekro) y estoy construyendo Nexo: un CR
 
 **Open source · Licencia MIT · Hecho con programación agéntica**
 
-[Descargar la beta 0.2.0-beta.2 para Mac, Windows y Android](https://github.com/SleekNekro/nexo-crm/releases/tag/v0.2.0-beta.2) · Con instalación guiada del servidor para Mac y Windows.
+[Descargar la beta 0.2.0-beta.3 para Mac, Windows y Android](https://github.com/SleekNekro/nexo-crm/releases/tag/v0.2.0-beta.3) · Con instalación guiada del servidor para Mac y Windows.
 
 ![Panel de Nexo CRM con datos ficticios](docs/screenshots/dashboard.jpg)
 

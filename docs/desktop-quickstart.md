@@ -1,6 +1,6 @@
 # Probar Nexo sin programar
 
-El asistente está disponible desde **0.2.0-beta.2**, para Mac Intel, Mac Apple Silicon y Windows x64. Android e iPhone se conectan a un servidor existente; no lo instalan en el móvil.
+El asistente está disponible desde **0.2.0-beta.2**; desde la **beta 3** la cuenta inicial admite ocho caracteres. Disponible para Mac Intel, Mac Apple Silicon y Windows x64. Android e iPhone se conectan a un servidor existente; no lo instalan en el móvil.
 
 ## Primera instalación
 

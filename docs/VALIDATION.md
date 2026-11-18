@@ -37,3 +37,15 @@ La prueba local de instalación utilizó la web compilada y una base PostgreSQL 
 - Las claves de la instalación se generan por usuario; no se reutilizan datos, cuentas ni volúmenes de SATINE. La firma Android sigue realizándose localmente.
 
 - Descarga anónima de los manifiestos app, PDF y gateway comprobada, con variantes AMD64 y ARM64. Los usuarios no necesitan credenciales de GitHub. [Compilación final de clientes](https://github.com/SleekNekro/nexo-crm/actions/runs/44286638883).
+
+## Primera instalación real en Mac — beta 0.2.0-beta.3 (18 de noviembre de 2026)
+
+- Mac Apple Silicon con Docker Desktop ya instalado y funcionando; configuración de Nexo inicialmente ausente. No se reinstaló Docker ni se reinició su servicio.
+- Descubierta y corregida la búsqueda del gestor de credenciales de Docker con un PATH reducido como el de Finder. La aplicación incorpora las carpetas del ejecutable de Docker y su destino real al PATH de sus procesos hijos.
+- El usuario completó la preparación en la ventana nativa e inició sesión con la contraseña local de ocho caracteres. La cuenta no requiere otro cambio inicial de contraseña.
+- Cuatro contenedores y cuatro volúmenes exclusivos, escucha en loopback y configuración privada con permisos 0600. La cuenta se conserva tras detener y arrancar el proyecto. Esta parada/arranque se ejecutó por CLI; no se automatizó el clic del botón nativo.
+- Otro CRM activo mantuvo sus contenedores de producción, imágenes, contadores de reinicio y horas de inicio; continuó respondiendo HTTP 200. Sus volúmenes no se comparten con Nexo.
+- 182 pruebas web y 11 pruebas Rust superadas. La integración desechable rechaza siete caracteres, permite crear e iniciar sesión con ocho y conserva la cuenta tras reiniciar, tanto en AMD64 como ARM64.
+- La prueba no cubre una instalación nueva de Docker Desktop, los avisos de Gatekeeper de una descarga hecha con navegador ni la instalación completa en un Windows físico.
+
+[Clientes beta 3](https://github.com/SleekNekro/nexo-crm/actions/runs/44292541516) · [Pruebas del servidor con ocho caracteres](https://github.com/SleekNekro/nexo-crm/actions/runs/44291293485).
