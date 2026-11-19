@@ -1,4 +1,6 @@
 export type WorkspaceBrand = {
+  quoteValidityDays?: string;
+  quoteFooter?: string;
   currency?: 'EUR' | 'USD' | 'GBP';
   name: string;
   logo: string;
@@ -56,6 +58,8 @@ export function validBrand(b: unknown): b is WorkspaceBrand {
       .filter((k) => k !== 'detail')
       .every((k) => typeof v[k as keyof WorkspaceBrand] === 'string') &&
     !!v.name.trim() &&
+    (v.quoteValidityDays === undefined ||
+      /^(?:[1-9]|[1-9][0-9]|[12][0-9]{2}|3[0-5][0-9]|36[0-5])$/.test(v.quoteValidityDays)) &&
     (v.currency === undefined || ['EUR', 'USD', 'GBP'].includes(v.currency)) &&
     v.name.length <= 80 &&
     Object.entries(v).every(

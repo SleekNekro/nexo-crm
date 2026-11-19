@@ -1,5 +1,17 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import { ArrowLeft } from 'lucide-react';
+export function DialogBack({ onBack }: { onBack: () => void }) {
+  return (
+    <div className="dialog-navigation">
+      <button type="button" onClick={onBack}>
+        <ArrowLeft size={18} aria-hidden="true" /> Volver
+      </button>
+    </div>
+  );
+}
+let activeDialogs = 0;
+let originalOverflow = '';
 export function useDialog(onClose: () => void) {
   const ref = useRef<HTMLElement>(null),
     close = useRef(onClose);
@@ -8,7 +20,8 @@ export function useDialog(onClose: () => void) {
     const el = ref.current;
     if (!el) return;
     const previous = document.activeElement as HTMLElement | null;
-    const old = document.body.style.overflow;
+    if (activeDialogs === 0) originalOverflow = document.body.style.overflow;
+    activeDialogs += 1;
     document.body.style.overflow = 'hidden';
     el.focus();
     const key = (e: KeyboardEvent) => {
@@ -45,7 +58,8 @@ export function useDialog(onClose: () => void) {
     };
     document.addEventListener('keydown', key);
     return () => {
-      document.body.style.overflow = old;
+      activeDialogs -= 1;
+      if (activeDialogs === 0) document.body.style.overflow = originalOverflow;
       document.removeEventListener('keydown', key);
       if (previous?.isConnected) previous.focus();
     };
@@ -73,6 +87,7 @@ export function FormDialog({
         className="modal"
         onClick={(e) => e.stopPropagation()}
       >
+        <DialogBack onBack={onClose} />
         {children}
       </section>
     </div>

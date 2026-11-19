@@ -7,7 +7,8 @@ export function quoteState(d: Deal, today = businessToday()) {
   if (d.stage === 'Perdido') return 'Perdido';
   const v = d.versions.at(-1);
   if (!v) return 'Borrador';
-  if (dayNumber(today) - dayNumber(v.date) > 30) return 'Caducado';
+  if (dayNumber(today) - dayNumber(v.date) > Number(v.snapshot?.brand?.quoteValidityDays || 30))
+    return 'Caducado';
   return v.sentAt ? 'Enviado' : 'Borrador';
 }
 export function dealAlerts(d: Deal, tasks: Task[], today = businessToday()) {

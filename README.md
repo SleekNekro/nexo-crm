@@ -6,7 +6,7 @@ Soy [SleekNekro](https://github.com/SleekNekro) y estoy construyendo Nexo: un CR
 
 **Open source · Licencia MIT · Hecho con programación agéntica**
 
-[Descargar la beta 0.2.0-beta.3 para Mac, Windows y Android](https://github.com/SleekNekro/nexo-crm/releases/tag/v0.2.0-beta.3) · Con instalación guiada del servidor para Mac y Windows.
+[Descargar la beta 0.2.0-beta.4 para Mac, Windows y Android](https://github.com/SleekNekro/nexo-crm/releases/tag/v0.2.0-beta.4) · Con instalación guiada del servidor para Mac y Windows.
 
 ![Panel de Nexo CRM con datos ficticios](docs/screenshots/dashboard.jpg)
 
@@ -24,7 +24,7 @@ La muestra utiliza una **empresa ficticia de construcción y revestimientos**. P
 
 El objetivo es que Nexo pueda adaptarse a **pymes de distintos sectores**, manteniendo pocos pasos, pantallas claras y solo las funciones que necesita cada negocio. Ya puedes ajustar campos, etapas, módulos y reglas comerciales desde la interfaz. Crear tipos de sección completamente nuevos todavía requiere código.
 
-**Personalización sin programar:** el asistente prepara la empresa y permite activar módulos existentes, añadir campos y adaptar etapas y automatizaciones. Un constructor de secciones completamente nuevas sigue siendo una evolución pendiente, sin fecha anunciada.
+**Personalización sin programar:** el asistente prepara la empresa y permite activar módulos existentes, añadir campos y adaptar etapas y automatizaciones. El código actual incluye una primera versión del creador de módulos propios: campos, listado, fichas y permisos por perfil. Kanban, calendario y automatizaciones de estos módulos siguen pendientes. Consulta la [guía y límites](docs/custom-modules.md). Disponible en beta.4 y su servidor correspondiente.
 
 ## Qué puedes hacer hoy
 
@@ -33,7 +33,8 @@ El objetivo es que Nexo pueda adaptarse a **pymes de distintos sectores**, mante
 - Consultar el historial de cada empresa —notas, actividades, presupuestos y correos enviados— y sus pendientes desde la lista.
 - Preparar nombre, logo, colores, moneda, equipo y correo con un asistente; empezar vacío o cargar ejemplos.
 - Personalizar campos y etapas, activar módulos y ajustar tres reglas comerciales desde **Configurar negocio**.
-- Organizar tratos en Kanban y crear presupuestos con productos, revisiones y PDF.
+- Crear módulos propios sin programar: plantilla Equipos, campos, relaciones con empresas/contactos, listado, fichas y permisos por perfil. [Guía y límites de la primera versión](docs/custom-modules.md).
+- Organizar tratos en Kanban y crear presupuestos con productos, revisiones y PDF. Personaliza el logo, colores, datos de empresa, validez, condiciones y pie del documento con vista previa.
 - Convertir presupuestos aceptados en pedidos; crear una obra sigue siendo opcional.
 - Registrar partes, fotos y horas, validar el trabajo y consultar costes.
 - Gestionar cuentas, permisos y espacios de empresa con datos separados.
@@ -121,8 +122,8 @@ Todos los clientes necesitan un **servidor Nexo encendido y accesible**. El tel�
 | Plataforma      | Estado actual                                                                     |
 | --------------- | --------------------------------------------------------------------------------- |
 | Web             | Puedes arrancarla con las instrucciones anteriores.                               |
-| Android 8+      | APK beta experimental; requiere servidor HTTPS.        |
-| macOS / Windows | Clientes Tauri 2 beta: Mac Intel/Apple Silicon y Windows x64.           |
+| Android 8+      | APK beta experimental; requiere servidor HTTPS.                                   |
+| macOS / Windows | Clientes Tauri 2 beta: Mac Intel/Apple Silicon y Windows x64.                     |
 | iPhone          | Web con manifiesto PWA; necesita HTTPS de confianza para instalarla desde Safari. |
 
 Descarga los clientes en [GitHub Releases](https://github.com/SleekNekro/nexo-crm/releases). Son una **beta para evaluación**, no incluyen el servidor y todavía requieren pruebas en equipos reales. La [guía de aplicaciones](apps/README.md) explica instalación, compilación y limitaciones.

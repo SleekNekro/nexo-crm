@@ -1,3 +1,4 @@
+import { customModuleSchema } from './custom-modules';
 import { companyHistorySchema } from './company-history';
 import { commercialDataAuditSchema } from './commercial-data-audit';
 import { Pool } from 'pg';
@@ -46,6 +47,7 @@ export function initWorkspaceData(w: Pick<WorkspaceRecord, 'id' | 'schema_name'>
         notes: [],
       }));
       await p.query(companyHistorySchema);
+      await p.query(customModuleSchema);
     })().catch((e) => {
       initialized.delete(w.id);
       throw e;

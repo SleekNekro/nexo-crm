@@ -13,7 +13,7 @@ export async function GET(req: Request) {
   };
   const fail = (message: string, status: number) =>
     new Response(
-      `<!doctype html><html lang="es"><meta charset="utf-8"><title>Presupuesto</title><p>${message}</p><a href="/">Volver al CRM</a></html>`,
+      `<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Presupuesto</title><p>${message}</p><a href="/">Volver al CRM</a></html>`,
       { status, headers },
     );
   try {
@@ -41,7 +41,7 @@ export async function GET(req: Request) {
     );
     html = html.replace(
       '<div class="toolbar">',
-      '<div class="toolbar"><a href="/" style="color:white;margin-right:16px">← Volver al CRM</a>',
+      `<div class="toolbar"><a href="/#view=Presupuestos&deal=${encodeURIComponent(deal.id)}&tab=Presupuesto">← Volver al presupuesto</a>`,
     );
     if (req.headers.get('user-agent')?.includes('NexoDesktop/')) {
       html = html.replace(

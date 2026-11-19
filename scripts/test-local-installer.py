@@ -7,7 +7,7 @@ assert arch in ('amd64', 'arm64')
 with tempfile.TemporaryDirectory(prefix='nexo-installer-check-') as temp:
     work = pathlib.Path(temp)
     compose = (root/'apps/server/compose.yaml').read_text()
-    compose = compose.replace('0.2.0-beta.3', '0.2.0-beta.3-'+arch)
+    compose = compose.replace('0.2.0-beta.4', '0.2.0-beta.4-'+arch)
     (work/'compose.yaml').write_text(compose)
     values = {key:secrets.token_hex(32) for key in ['POSTGRES_PASSWORD','CRM_RUNTIME_PASSWORD','AUTH_ENCRYPTION_KEY','CRM_GATEWAY_TOKEN','CRM_DEPLOYMENT_ID']}
     values.update(COMPOSE_PROJECT_NAME='nexo-installer-check-'+secrets.token_hex(5),APP_PORT='8180',ADMIN_PORT='8182',CRM_PUBLIC_URL='http://localhost:8180')

@@ -40,8 +40,8 @@ export default function QuoteList({
         <div>
           <h2>Presupuestos</h2>
           <p>
-            Estado de la revisión aceptada o última emitida · validez de 30 días desde su fecha. Los
-            aceptados conservan su estado.
+            Estado de la revisión aceptada o última emitida · validez indicada en cada presupuesto.
+            Los aceptados conservan su estado.
           </p>
         </div>
         <label>

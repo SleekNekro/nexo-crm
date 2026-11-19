@@ -21,9 +21,9 @@ jobs:
         env:
           ARCH: ${{ matrix.arch }}
         run: |
-          docker build --target app -t ghcr.io/sleeknekro/nexo-crm:app-0.2.0-beta.3-$ARCH .
-          docker build --target pdf -t ghcr.io/sleeknekro/nexo-crm:pdf-0.2.0-beta.3-$ARCH .
-          docker build -t ghcr.io/sleeknekro/nexo-crm:gateway-0.2.0-beta.3-$ARCH services/gateway
+          docker build --target app -t ghcr.io/sleeknekro/nexo-crm:app-0.2.0-beta.4-$ARCH .
+          docker build --target pdf -t ghcr.io/sleeknekro/nexo-crm:pdf-0.2.0-beta.4-$ARCH .
+          docker build -t ghcr.io/sleeknekro/nexo-crm:gateway-0.2.0-beta.4-$ARCH services/gateway
       - name: Verify a fresh installation and restart
         env:
           IMAGE_ARCH: ${{ matrix.arch }}
@@ -38,7 +38,7 @@ jobs:
           ARCH: ${{ matrix.arch }}
         run: |
           for component in app pdf gateway; do
-            docker push ghcr.io/sleeknekro/nexo-crm:$component-0.2.0-beta.3-$ARCH
+            docker push ghcr.io/sleeknekro/nexo-crm:$component-0.2.0-beta.4-$ARCH
           done
   manifests:
     needs: build
@@ -52,5 +52,5 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - run: |
           for component in app pdf gateway; do
-            docker buildx imagetools create --tag ghcr.io/sleeknekro/nexo-crm:$component-0.2.0-beta.3 ghcr.io/sleeknekro/nexo-crm:$component-0.2.0-beta.3-amd64 ghcr.io/sleeknekro/nexo-crm:$component-0.2.0-beta.3-arm64
+            docker buildx imagetools create --tag ghcr.io/sleeknekro/nexo-crm:$component-0.2.0-beta.4 ghcr.io/sleeknekro/nexo-crm:$component-0.2.0-beta.4-amd64 ghcr.io/sleeknekro/nexo-crm:$component-0.2.0-beta.4-arm64
           done

@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { FormDialog } from './dialog';
+import QuoteTemplateSettings from './quote-template-settings';
 import MailSettings from './mail-settings';
 import type { Identity } from '../../application/access';
 import type { Data } from '../../domain/model';
@@ -20,6 +21,7 @@ const sections = [
   'Etapas',
   'Automatizaciones',
   'Equipo y correo',
+  'Plantilla de presupuesto',
   'Empezar',
 ];
 export default function BusinessSettingsDialog({
@@ -202,7 +204,11 @@ export default function BusinessSettingsDialog({
                       }
                       const reader = new FileReader();
                       reader.onload = () => {
-                        setBrand({ ...brand, logo: String(reader.result) });
+                        setBrand((current) => {
+                          const next = { ...current, logo: String(reader.result) };
+                          delete next.logoLayout;
+                          return next;
+                        });
                         setDirty(true);
                       };
                       reader.readAsDataURL(f);
@@ -240,7 +246,18 @@ export default function BusinessSettingsDialog({
                 </div>
               </details>
               {brand.logo && (
-                <img src={brand.logo} alt="Vista previa del logo" className="settings-logo" />
+                <>
+                  <img src={brand.logo} alt="Vista previa del logo" className="settings-logo" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBrand({ ...brand, logo: '' });
+                      setDirty(true);
+                    }}
+                  >
+                    Quitar logo
+                  </button>
+                </>
               )}
               <p>
                 La moneda no convierte los importes. No se puede cambiar una vez emitidos
@@ -616,6 +633,15 @@ export default function BusinessSettingsDialog({
             </>
           )}
           {tab === 6 && (
+            <QuoteTemplateSettings
+              brand={brand}
+              onChange={(next) => {
+                setBrand(next);
+                setDirty(true);
+              }}
+            />
+          )}
+          {tab === 7 && (
             <>
               <h3>{config.setupComplete ? 'Guardar cambios' : 'Cómo quieres empezar'}</h3>
               {!config.setupComplete && (

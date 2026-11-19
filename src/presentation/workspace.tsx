@@ -1,4 +1,5 @@
 'use client';
+import CustomModules from './components/custom-modules';
 import BusinessSettingsDialog from './components/business-settings';
 import { useBusinessSettings } from './hooks/use-business-settings';
 import { phaseFor } from '../domain/business-settings';
@@ -58,7 +59,6 @@ import RecordFormDialog from './components/record-form-dialog';
 import Team from './components/team';
 import WorkerPortal from './components/worker-portal';
 import Works from './components/works';
-import { quoteDocument } from './documents/quote-document';
 import { useRecordForms } from './hooks/use-record-forms';
 import { useWorkspaceData } from './hooks/use-workspace-data';
 const uid = () => recordId();
@@ -345,19 +345,6 @@ function Workspace({ user }: { user: Identity | null }) {
     });
     window.location.assign('/documentos/presupuesto?' + params);
   }
-  function renderQuote(w: Window, d: Deal, v: Deal['versions'][number]) {
-    w.document.write(
-      quoteDocument(
-        d,
-        v,
-        data!.companies.find((c) => c.id === d.companyId),
-        data!.contacts.find((c) => c.id === d.contactId && c.companyId === d.companyId),
-        location.origin + '/brand/nexo-logo.svg',
-      ),
-    );
-    w.document.close();
-    w.opener = null;
-  }
   async function issue(d: Deal, openPdf = false) {
     if (busy) return;
     const matching = matchingDraftRevision(data!, d, brand);
@@ -366,12 +353,6 @@ function Workspace({ user }: { user: Identity | null }) {
       else setNotice('El borrador ya coincide con la última revisión');
       return;
     }
-    const w =
-      openPdf && !navigator.userAgent.includes('NexoDesktop/') ? window.open('', '_blank') : null;
-    if (w) {
-      w.opener = null;
-      w.document.body.textContent = 'Guardando revisión…';
-    }
     try {
       const id = uid();
       let saved: Data | undefined;
@@ -379,34 +360,39 @@ function Workspace({ user }: { user: Identity | null }) {
         saved = value;
       });
       if (!ok) {
-        w?.close();
         return;
       }
       const deal = saved?.deals.find((x) => x.id === d.id),
         revision = deal?.versions.find((v) => v.id === id);
-      if (openPdf && deal && revision) {
-        if (w) renderQuote(w, deal, revision);
-        else openQuotePage(deal, revision);
-      } else if (w) {
-        w.close();
+      if (openPdf && deal && revision) openQuotePage(deal, revision);
+      else if (openPdf)
         setError('Revisión guardada. Ábrela desde el historial para generar el PDF.');
-      }
     } catch (e) {
-      w?.close();
       setError((e as Error).message);
     }
   }
   function printQuote(d: Deal, v: Deal['versions'][number]) {
-    if (navigator.userAgent.includes('NexoDesktop/')) {
-      openQuotePage(d, v);
-      return;
+    openQuotePage(d, v);
+  }
+  async function logout() {
+    if ((workDirty || formDirty) && !confirm('Hay cambios sin guardar. ¿Cerrar sesión?')) return;
+    if (localStorage.getItem('crm-shared-device') === '1') {
+      if (
+        !confirm(
+          'Se eliminarán los borradores y fotos sin enviar de este dispositivo. ¿Cerrar sesión?',
+        )
+      )
+        return;
+      await clearLaborDrafts();
     }
-    const w = window.open('', '_blank');
-    if (!w) {
-      openQuotePage(d, v);
-      return;
-    }
-    renderQuote(w, d, v);
+    const response = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'logout' }),
+    });
+    if (!response.ok) throw Error('No se ha podido cerrar sesión. Vuelve a intentarlo.');
+    sessionStorage.clear();
+    location.reload();
   }
 
   const title = view === 'Resumen' ? 'Tu actividad, en perspectiva.' : view;
@@ -526,6 +512,21 @@ function Workspace({ user }: { user: Identity | null }) {
                 )}
               </button>
             ))}
+          {user && (
+            <CustomModules
+              key={user.workspaceId}
+              user={user}
+              onEnter={() => {
+                if (
+                  (workDirty || formDirty) &&
+                  !confirm('Hay cambios sin guardar. ¿Abrir el módulo?')
+                )
+                  return false;
+                setMobileMenuOpen(false);
+                return true;
+              }}
+            />
+          )}
         </nav>
         <div className="asidebottom" role="status" aria-live="polite">
           <span
@@ -576,35 +577,6 @@ function Workspace({ user }: { user: Identity | null }) {
               )}
               <button onClick={() => setAccounts(true)}>
                 {user.displayName || user.username} · Mi cuenta
-              </button>
-              <button
-                onClick={async () => {
-                  if (
-                    (workDirty || formDirty) &&
-                    !confirm('Hay cambios sin guardar. ¿Cerrar sesión?')
-                  )
-                    return;
-                  if (localStorage.getItem('crm-shared-device') === '1') {
-                    if (
-                      !confirm(
-                        'Se eliminarán los borradores y fotos sin enviar de este dispositivo. ¿Cerrar sesión?',
-                      )
-                    )
-                      return;
-                    await clearLaborDrafts();
-                  }
-                  const r = await fetch('/api/auth', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'logout' }),
-                  });
-                  if (r.ok) {
-                    sessionStorage.clear();
-                    location.reload();
-                  } else setError('No se ha podido cerrar sesión');
-                }}
-              >
-                Salir
               </button>
             </>
           ) : (
@@ -1110,7 +1082,9 @@ function Workspace({ user }: { user: Identity | null }) {
           onClose={() => setBusinessSettingsOpen(false)}
         />
       )}
-      {accounts && user && <Accounts user={user} onClose={() => setAccounts(false)} />}
+      {accounts && user && (
+        <Accounts user={user} onClose={() => setAccounts(false)} onLogout={logout} />
+      )}
       {completing && data.tasks.find((t) => t.id === completing) && (
         <ActivityCompletion
           key={completing}

@@ -12,11 +12,11 @@ import { compareActivities } from '../../domain/activity-priority';
 import { scopedKey } from '../utils/workspace-context';
 import { PermissionForm, PermissionButton, PermissionSelect } from './permission-controls';
 import { recordId } from '../utils/record-id';
-import { Pencil, Plus, X } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Data, Deal, Task, stages, subtotal, total } from '../../domain/model';
 import { dueLabel } from './activity-list';
-import { useDialog } from './dialog';
+import { useDialog, DialogBack } from './dialog';
 import ProductCatalogue from './product-catalogue';
 type Props = {
   initialTab?: string;
@@ -185,9 +185,7 @@ export default function DealDetail({
         aria-label="Ficha del trato"
         onClick={(e) => e.stopPropagation()}
       >
-        <button aria-label="Cerrar ficha del trato" className="close" onClick={close}>
-          <X />
-        </button>
+        <DialogBack onBack={close} />
         <div className="eyebrow">FICHA DEL TRATO · {d.owner}</div>
         <h2>{d.title}</h2>
         <button

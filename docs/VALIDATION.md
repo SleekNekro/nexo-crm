@@ -49,3 +49,25 @@ La prueba local de instalación utilizó la web compilada y una base PostgreSQL 
 - La prueba no cubre una instalación nueva de Docker Desktop, los avisos de Gatekeeper de una descarga hecha con navegador ni la instalación completa en un Windows físico.
 
 [Clientes beta 3](https://github.com/SleekNekro/nexo-crm/actions/runs/44292541516) · [Pruebas del servidor con ocho caracteres](https://github.com/SleekNekro/nexo-crm/actions/runs/44291293485).
+
+### Plantilla personalizable por empresa (18 de noviembre de 2026)
+
+- 184 pruebas unitarias pasan, incluida la conservación de la identidad y condiciones en la revisión, escape de textos y caducidad configurable con compatibilidad histórica.
+- Compilación de producción correcta.
+- Prueba manual asistida en la instalación local de Nexo: carga inicial de ejemplos en un espacio vacío; presupuesto nuevo para una empresa, trato automático, dos productos del catálogo y revisión guardada. Base 57,00 €, IVA 11,97 €, total 68,97 €.
+- Revisión visual del documento con logo ficticio, colores, datos del cliente, validez y condiciones personalizadas.
+- La imagen local de prueba reutiliza las dependencias Linux de beta.3 con la nueva compilación de la aplicación. Esto no constituye una nueva release pública.
+- Detectada y corregida una carrera en Chromium: `load` no garantizaba que el logo estuviera decodificado antes de imprimir. El renderizador espera explícitamente `image.decode()`.
+- PDF descargado desde `/api/quote-pdf` y renderizado para inspección: logo presente, datos e importes correctos y sin solapamientos.
+- Comprobados Mi cuenta y Volver en viewport móvil de 390 px; apertura del documento en la misma ventana, regreso a la ficha del presupuesto y cierre efectivo de la sesión de prueba.
+- Comprobados los cinco contenedores de producción SATINE antes y después: mismos identificadores, fechas de arranque y contadores de reinicio. Solo se actualizaron app y PDF del proyecto local Nexo.
+- No sustituye una prueba en un iPhone físico instalado como PWA; queda pendiente comprobar allí el diálogo de impresión del sistema.
+
+### Creador de módulos · primera versión (19 de noviembre de 2026)
+
+- 189 pruebas unitarias pasan y compilación de producción correcta.
+- Integración contra PostgreSQL desechable: autenticación, permisos por perfil, origen, validación de campos, conflictos de versiones, conservación de campos archivados, borrado lógico, relaciones restringidas y separación entre espacios.
+- Publicación de Equipos mediante el asistente en la instalación local de Nexo. Dos registros ficticios relacionados con las empresas y contactos de demostración; no se sustituyen datos existentes.
+- El alcance y los límites de esta primera versión están en `docs/custom-modules.md`.
+
+- Prueba de interfaz automatizada en 390 × 844: asistente, plantilla, publicación, alta, consulta, edición, eliminación, retorno y restauración del desplazamiento. Revisión visual adicional del listado y la ficha con los dos equipos ficticios en Nexo local.

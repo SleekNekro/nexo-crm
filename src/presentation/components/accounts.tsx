@@ -1,12 +1,20 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Mail } from 'lucide-react';
+import { Mail, LogOut } from 'lucide-react';
 import MailSettings from './mail-settings';
 import { canAct } from '../../domain/permissions';
 import type { Identity } from '../../application/access';
 import { FormDialog } from './dialog';
 import SecuritySettings from './security-settings';
-export default function Accounts({ user, onClose }: { user: Identity; onClose: () => void }) {
+export default function Accounts({
+  user,
+  onClose,
+  onLogout,
+}: {
+  user: Identity;
+  onClose: () => void;
+  onLogout: () => Promise<void>;
+}) {
   const [sharedDevice, setSharedDevice] = useState(false);
   useEffect(() => {
     setSharedDevice(localStorage.getItem('crm-shared-device') === '1');
@@ -38,7 +46,6 @@ export default function Accounts({ user, onClose }: { user: Identity; onClose: (
   }
   return (
     <FormDialog title="Mi cuenta" onClose={onClose}>
-      <button onClick={onClose}>Cerrar</button>
       <h2>Mi cuenta · {user.username}</h2>
       <label className="check-row">
         <input
@@ -113,6 +120,28 @@ export default function Accounts({ user, onClose }: { user: Identity; onClose: (
         <button disabled={busy}>Cambiar contraseña</button>
       </form>
       <SecuritySettings />
+      <section className="account-session">
+        <h3>Sesión en este dispositivo</h3>
+        <button
+          type="button"
+          className="icon-action"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            setError('');
+            try {
+              await onLogout();
+            } catch (e) {
+              setError((e as Error).message);
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <LogOut size={18} aria-hidden="true" />
+          {busy ? 'Espera…' : 'Cerrar sesión'}
+        </button>
+      </section>
     </FormDialog>
   );
 }

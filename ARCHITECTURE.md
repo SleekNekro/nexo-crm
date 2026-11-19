@@ -78,3 +78,7 @@ Excel se analiza bajo demanda en el navegador con ExcelJS; fflate comprueba los 
 El comando `setup_action` solo acepta llamadas de la ventana local `setup` y su origen empaquetado. La ventana remota del CRM no puede gestionar Docker. Las acciones son una lista cerrada y los argumentos se pasan directamente al ejecutable, sin intérprete de comandos. La contraseña inicial va por stdin a `setup-local-admin.mjs`, que bloquea la tabla en una transacción y solo crea una cuenta si no existe ninguna. No guarda la contraseña en archivos ni permite restablecer cuentas existentes.
 
 Las imágenes se construyen para AMD64 y ARM64, pasan una instalación desechable con inicio de sesión y parada/arranque, y se publican en un único paquete GHCR vinculado al repositorio. El paquete debe ser público para que el usuario no necesite cuenta de GitHub. Los instaladores contienen etiquetas de versión fijas; la instalación conserva su Compose y no migra silenciosamente a otra versión.
+
+## Módulos declarativos
+
+El creador de módulos guarda definiciones y registros en tablas independientes por espacio. No genera código ni altera las tablas de empresas o contactos. El servidor valida campos, relaciones, permisos y versiones; el cliente genera los formularios y las fichas desde esas definiciones. Véase [Creador de módulos](docs/custom-modules.md) para el alcance y los límites actuales.

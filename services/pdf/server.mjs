@@ -52,6 +52,9 @@ const server = http.createServer(async (req, res) => {
       waitUntil: 'load',
       timeout: 15000,
     });
+    await page.evaluate(async () => {
+      await Promise.all(Array.from(document.images, (image) => image.decode()));
+    });
     const pdf = Buffer.from(
       await page.pdf({
         format: 'A4',

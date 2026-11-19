@@ -2,7 +2,7 @@
 
 ## Experiencia para personas sin perfil técnico
 
-Orientar Nexo a pymes de distintos sectores, usando la construcción como caso de demostración inicial y manteniendo pocos pasos y pantallas comprensibles. Preparar una versión con secciones modulares que se puedan añadir y configurar desde la interfaz sin escribir código. Es una funcionalidad futura: no hay constructor, catálogo de módulos ni fecha comprometida en esta entrega. Se definirá con las necesidades y aportaciones de la comunidad.
+Orientar Nexo a pymes de distintos sectores, usando la construcción como caso de demostración inicial y manteniendo pocos pasos y pantallas comprensibles. La primera versión del creador de módulos ya permite definir campos, permisos por perfil y fichas desde la interfaz, con Equipos como plantilla. El siguiente paso es incorporar vistas configurables, relaciones entre módulos y automatizaciones, sin comprometer una fecha. El alcance actual está en [Creador de módulos](custom-modules.md).
 
 ## Consolidación técnica
 

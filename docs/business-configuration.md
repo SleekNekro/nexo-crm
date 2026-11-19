@@ -59,3 +59,17 @@ La moneda se utiliza al presentar importes y en las nuevas instantáneas de pres
 La configuración usa control de versión para rechazar guardados concurrentes. Otras sesiones consultan cambios al recuperar el foco y periódicamente, sin recargar la página ni perder el formulario abierto. La comprobación pasiva no prolonga la sesión. El servidor aplica los permisos actuales en cada operación.
 
 `npm test` cubre las reglas de configuración y la lectura de Excel. `tests/commercial-data.integration.mjs` añade comprobaciones HTTP sobre una base desechable, incluidas protección del historial, campos, etapas, moneda y desactivación/reactivación de módulos. Consulta sus requisitos en [la guía comercial](commercial-data.md).
+
+## Plantilla de presupuesto por empresa
+
+En **Configurar negocio → Identidad** se cargan el logo (PNG, JPG o WebP, hasta 180 KB), colores, razón social y datos de contacto. En **Plantilla de presupuesto** se ajustan la validez (1–365 días), las condiciones y forma de pago y las observaciones al pie. La vista previa usa datos ficticios y el mismo generador de documentos que el PDF.
+
+Cada revisión guarda una copia de estos ajustes: cambiar la empresa no altera el logo, los textos ni la validez de las revisiones anteriores. La caducidad en la lista respeta la validez de la revisión; los documentos históricos sin este ajuste conservan 30 días. La moneda no se puede cambiar si ya hay presupuestos emitidos.
+
+Para probar una instalación vacía, el último paso del asistente permite **Cargar ejemplos ficticios**. No sustituye datos existentes ni envía correos. Después, crea un presupuesto desde una empresa, añade productos y pulsa **Guardar revisión y abrir PDF**.
+
+## Navegación en móvil y PWA
+
+**Cerrar sesión** está dentro de **Mi cuenta**. Los formularios y la ficha del trato tienen un botón **Volver** visible al desplazarse; conservan las comprobaciones de cambios sin guardar. El documento del presupuesto se abre en la misma ventana y ofrece **Volver al presupuesto**, también sin los controles del navegador. La impresión conserva el comportamiento nativo en escritorio.
+
+El servicio PDF espera a que el logo termine de decodificarse antes de imprimir: si la imagen no puede cargarse, falla la generación en lugar de entregar silenciosamente un documento sin logo.
