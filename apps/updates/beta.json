@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0-beta.5",
+  "notes": "Actualizaciones de la aplicaci\u00f3n y de su servidor local con copia y recuperaci\u00f3n. Servidor incluido: 0.2.0-beta.4.",
+  "pub_date": "2026-11-24T10:44:23.455489Z",
+  "platforms": {
+    "darwin-aarch64": {
+      "url": "https://github.com/SleekNekro/nexo-crm/releases/download/v0.2.0-beta.5/Nexo-CRM-macOS-Apple-Silicon.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTeW0zSmErZzcvMEZESnlLSllvejlsZXlWNWxWZjJzM3dXd3dBeFprQlhEcUV6ZmJuOTQ3bEgyNWJjcEJnY0dremlLRzd3c24yT2xEVmJmZHZDT1ZLckpSbVVSQkhZQndBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTE3MDYzCWZpbGU6TmV4by1DUk0tbWFjT1MtQXBwbGUtU2lsaWNvbi5hcHAudGFyLmd6CXZlcnNpb246MC4yLjAtYmV0YS41CkZFVVcwTWN1THYwUmh4WjRwTXdzdHlSODdJdlkxQXBiNUVEblppRjFTS0xyTTJPeFhMN25tTDlwZVNoSDI4NWpBVnF2LytvcjdkUGRIUlJSYXRwM0RnPT0K"
+    },
+    "darwin-x86_64": {
+      "url": "https://github.com/SleekNekro/nexo-crm/releases/download/v0.2.0-beta.5/Nexo-CRM-macOS-Intel.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTeW0zSmErZzcvMEp6bUc5bWExVlp5RHUyalJGNDhtMFU3Skw5Skd4SHdvT3VNL2dHSlJEOEJKTHUvWWMyYzFZUk1JNVBMa2F2TktxMUN1dGJQMloxOWp0Wk82elY4T1FVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTE3MDYzCWZpbGU6TmV4by1DUk0tbWFjT1MtSW50ZWwuYXBwLnRhci5negl2ZXJzaW9uOjAuMi4wLWJldGEuNQpWREpsWWtVR1hwdk1ZSEUvajNRc25wOFJOMUpLSUV1YzFQSSt0cVFtRW5nUVdLcDV3bTgxSWJ2V3hRVlVsSXFMdkpFSHFKd3NSMVQ5SW4wbTlOd1pBdz09Cg=="
+    },
+    "windows-x86_64": {
+      "url": "https://github.com/SleekNekro/nexo-crm/releases/download/v0.2.0-beta.5/Nexo-CRM-Windows-x64-setup.exe",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTeW0zSmErZzcvMElFRkg1SnlOU2hxMWwrMlRuelVqWHdBMWw4N3J2RkxVKytKOWExNUJCRXY2T2k2N3hTQlY5WnFzY1NHVWQ4TEQwTGVyd25zdW13aW4xSkxJQ3VrSXdzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTE3MDYzCWZpbGU6TmV4by1DUk0tV2luZG93cy14NjQtc2V0dXAuZXhlCXZlcnNpb246MC4yLjAtYmV0YS41Cld6V0R3VXg1WGY5OVlHaTlDRXpqUll5a1FZa0Z6NXRxMU1XREx2VEEzMnYwd0pnYW5tdWpraXhROGdNSk5FRGJRNE9OSmRnWDBoTzgvYlo2UEU5SUN3PT0K"
+    }
+  }
+}

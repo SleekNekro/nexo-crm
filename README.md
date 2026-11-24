@@ -6,7 +6,7 @@ Soy [SleekNekro](https://github.com/SleekNekro) y estoy construyendo Nexo: un CR
 
 **Open source · Licencia MIT · Hecho con programación agéntica**
 
-[Descargar la beta 0.2.0-beta.4 para Mac, Windows y Android](https://github.com/SleekNekro/nexo-crm/releases/tag/v0.2.0-beta.4) · Con instalación guiada del servidor para Mac y Windows.
+[Descargar la beta.5 para Mac y Windows](https://github.com/SleekNekro/nexo-crm/releases/tag/v0.2.0-beta.5) · Instalación y actualizaciones guiadas del servidor. [Android (beta.4)](https://github.com/SleekNekro/nexo-crm/releases/tag/v0.2.0-beta.4).
 
 ![Panel de Nexo CRM con datos ficticios](docs/screenshots/dashboard.jpg)
 
@@ -45,7 +45,7 @@ Configuración: [asistente, campos, etapas, módulos y automatizaciones](docs/bu
 
 En una instalación nueva, entra con la cuenta inicial de desarrollador y pulsa **Preparar mi CRM**. Elige empezar vacío o cargar los ejemplos ficticios de las capturas.
 
-En escritorio, el código de beta.5 añade **Buscar actualizaciones → Actualizar Nexo** para actualizar la aplicación y su servidor local, con copia y recuperación. Necesita instalar beta.5 una primera vez. [Cómo funciona y límites](docs/desktop-updates.md).
+Desde beta.5, en escritorio tienes **Buscar actualizaciones → Actualizar Nexo** para actualizar la aplicación y su servidor local, con copia y recuperación. Necesita instalar beta.5 una primera vez. [Cómo funciona y límites](docs/desktop-updates.md).
 
 ## Un vistazo por dentro
 
