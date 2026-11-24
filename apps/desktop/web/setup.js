@@ -109,23 +109,36 @@ el('connect').onsubmit = (event) => {
 el('docker-download').onclick = () => perform('docker-download');
 el('check').onclick = () => perform('status');
 el('open').onclick = () => perform('open-local');
-el('stop').onclick = () => {
-  if (
-    confirm(
-      '¿Detener el servidor? Se cerrarán las conexiones a este Nexo. Tus datos se conservarán.',
-    )
-  )
-    perform('stop');
+let pendingAction = null;
+function askBefore(action, message) {
+  if (busy) return;
+  pendingAction = action;
+  el('confirmation-message').textContent = message;
+  el('confirmation').hidden = false;
+  el('confirmation').scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+  el('confirm-action').focus?.();
+}
+el('cancel-action').onclick = () => {
+  pendingAction = null;
+  el('confirmation').hidden = true;
 };
+el('confirm-action').onclick = () => {
+  const action = pendingAction;
+  pendingAction = null;
+  el('confirmation').hidden = true;
+  if (action) void perform(action);
+};
+el('stop').onclick = () =>
+  askBefore(
+    'stop',
+    '¿Detener el servidor? Se cerrarán las conexiones a este Nexo. Tus datos se conservarán.',
+  );
 el('update-check').onclick = () => perform('updates-check');
-el('update-install').onclick = () => {
-  if (
-    confirm(
-      '¿Actualizar Nexo? Guarda tus cambios y cierra las ventanas del CRM. Se hará una copia de seguridad y el servidor se pausará; la aplicación puede reiniciarse.',
-    )
-  )
-    perform('updates-install');
-};
+el('update-install').onclick = () =>
+  askBefore(
+    'updates-install',
+    'Guarda tus cambios y cierra las ventanas del CRM. Haremos una copia de seguridad y pausaremos el servidor. La aplicación puede reiniciarse para continuar.',
+  );
 el('update-recover').onclick = () => perform('server-recover');
 async function initialize() {
   await perform('status');

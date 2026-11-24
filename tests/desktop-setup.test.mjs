@@ -109,3 +109,17 @@ test('remote client can see an app update without a local server', async () => {
   assert.equal(el('update-install').hidden, false);
   assert.match(el('update-message').textContent, /new/);
 });
+
+test('update requires an inline confirmation that also works without native dialogs', async () => {
+  const { el, calls } = await setup({ 'updates-install': { done: true } });
+  el('update-install').onclick();
+  assert.equal(el('confirmation').hidden, false);
+  assert.equal(calls.includes('updates-install'), false);
+  el('cancel-action').onclick();
+  assert.equal(el('confirmation').hidden, true);
+  assert.equal(calls.includes('updates-install'), false);
+  el('update-install').onclick();
+  el('confirm-action').onclick();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(calls.filter((x) => x === 'updates-install').length, 1);
+});
