@@ -81,7 +81,8 @@ fn candidate(current: &str, target: &str) -> Result<String, String> {
         );
     }
     // The installer owns exactly these four services. Extra writers cannot be safely quiesced.
-    let services = current
+    let normalized = current.replace("\r\n", "\n");
+    let services = normalized
         .split("services:\n")
         .nth(1)
         .and_then(|s| s.split("\nvolumes:").next())
@@ -482,6 +483,14 @@ mod tests {
         assert_eq!(next, local_server::COMPOSE);
     }
     #[test]
+    fn windows_line_endings_are_supported_and_preserved() {
+        let target = local_server::COMPOSE
+            .replace("\r\n", "\n")
+            .replace('\n', "\r\n");
+        let current = target.replace("app-0.2.0-beta.4", "app-0.2.0-beta.3");
+        assert_eq!(candidate(&current, &target).unwrap(), target);
+    }
+    #[test]
     fn rejects_unknown_images_and_services() {
         assert!(candidate(
             &local_server::COMPOSE.replace("ghcr.io/sleeknekro/nexo-crm:", "evil.example/app:"),
@@ -489,7 +498,9 @@ mod tests {
         )
         .is_err());
         assert!(candidate(
-            &local_server::COMPOSE.replace("  app:\n", "  writer:\n    image: writer\n  app:\n"),
+            &local_server::COMPOSE
+                .replace("\r\n", "\n")
+                .replace("  app:\n", "  writer:\n    image: writer\n  app:\n"),
             local_server::COMPOSE
         )
         .is_err());
