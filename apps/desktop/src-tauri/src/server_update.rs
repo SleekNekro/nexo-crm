@@ -132,10 +132,19 @@ fn write(path: &Path, bytes: &[u8]) -> Result<(), String> {
         use std::os::unix::fs::OpenOptionsExt;
         options.mode(0o600);
     }
-    let mut f = options.open(path).map_err(|_| error())?;
+    // A full disk or power loss must never leave a truncated Compose/journal.
+    let temporary = path.with_extension("nexo-tmp");
+    let mut f = options.open(&temporary).map_err(|_| error())?;
     f.write_all(bytes)
         .and_then(|_| f.sync_all())
-        .map_err(|_| error())
+        .map_err(|_| error())?;
+    drop(f);
+    fs::rename(&temporary, path).map_err(|_| error())?;
+    #[cfg(unix)]
+    if let Some(parent) = path.parent() {
+        let _ = fs::File::open(parent).and_then(|f| f.sync_all());
+    }
+    Ok(())
 }
 fn backup_path(dir: &Path) -> Result<PathBuf, String> {
     let id = fs::read_to_string(dir.join("update-pending")).map_err(|_| error())?;
@@ -489,6 +498,17 @@ mod tests {
     fn refuses_server_downgrades() {
         let newer = local_server::COMPOSE.replace("0.2.0-beta.4", "9.0.0");
         assert!(candidate(&newer, local_server::COMPOSE).is_err());
+    }
+    #[test]
+    fn failed_write_preserves_working_configuration() {
+        let dir = std::env::temp_dir().join(format!("nexo-atomic-update-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("compose.yaml");
+        fs::write(&path, "working configuration").unwrap();
+        fs::create_dir(path.with_extension("nexo-tmp")).unwrap();
+        assert!(write(&path, b"new configuration").is_err());
+        assert_eq!(fs::read_to_string(path).unwrap(), "working configuration");
+        fs::remove_dir_all(dir).unwrap();
     }
     #[test]
     fn recovery_path_is_confined() {
