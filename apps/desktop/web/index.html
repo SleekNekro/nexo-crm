@@ -1,10 +1,114 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nexo · Empezar</title><link rel="stylesheet" href="setup.css"></head>
-<body><main><header><span class="badge">NEXO CRM · BETA</span><h1>¿Cómo quieres empezar?</h1><p>Organiza tu negocio, a tu manera.</p></header>
-<div class="tabs" role="tablist" aria-label="Modo de conexión"><button id="local-tab" role="tab" aria-selected="true" aria-controls="local-panel">Probar en este ordenador</button><button id="remote-tab" role="tab" aria-selected="false" aria-controls="remote-panel">Tengo un servidor</button></div>
-<section id="local-panel" role="tabpanel" aria-labelledby="local-tab"><h2>Tu propio Nexo, aquí</h2><p>Prepararemos el servidor y guardaremos los datos en Docker, en este ordenador. Puedes empezar vacío o cargar ejemplos al entrar.</p>
-<div class="status" role="status"><span id="led" class="led"></span><span id="status">Comprobando Docker…</span></div>
-<div id="docker-help" hidden><h3>Primero, Docker Desktop</h3><button id="docker-download" type="button">Descargar Docker Desktop</button><ol><li>Instala Docker Desktop desde <strong>docker.com/products/docker-desktop</strong>.</li><li>Ábrelo y espera a que termine de arrancar. En Windows, elige contenedores Linux.</li><li>Vuelve aquí y pulsa «Comprobar».</li></ol><p>La primera descarga requiere Internet y varios GB libres. Docker puede pedir permisos o reiniciar Windows. Revisa sus condiciones de licencia.</p></div>
-<form id="install"><div id="account"><label for="password">Elige tu contraseña para Nexo</label><input id="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="Al menos 8 caracteres"><label for="repeat">Repite la contraseña</label><input id="repeat" type="password" autocomplete="new-password"><p class="hint">Tu usuario será <strong>developer</strong>. La contraseña no se guarda en archivos ni en registros.</p></div><div class="actions"><button id="start" type="submit" disabled>Preparar mi CRM</button><button id="open" type="button" hidden>Abrir CRM</button><button id="stop" type="button" class="secondary" hidden>Detener servidor</button><button id="check" type="button" class="secondary">Comprobar</button></div></form>
-<p id="address" class="hint"></p><p class="hint">Detener conserva los datos. Cerrar esta ventana no detiene el servidor. Esta prueba solo es accesible desde este ordenador.</p></section>
-<section id="remote-panel" role="tabpanel" aria-labelledby="remote-tab" hidden><h2>Conectar con tu equipo</h2><p>Introduce la dirección que te haya facilitado quien administra tu servidor.</p><form id="connect"><label for="server">Dirección del servidor</label><input id="server" type="url" placeholder="https://crm.example.com" required><label class="checkbox"><input id="http" type="checkbox"> Permitir HTTP en mi red local (sin cifrado)</label><button type="submit">Conectar</button></form></section>
-<p id="progress" role="status" hidden></p><p id="error" role="alert"></p><footer>Para gestionar el servidor de nuevo: menú CRM → Conexión y servidor local.</footer></main><script src="setup.js"></script></body></html>
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Nexo · Empezar</title>
+    <link rel="stylesheet" href="setup.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <span class="badge">NEXO CRM · BETA</span>
+        <h1>¿Cómo quieres empezar?</h1>
+        <p>Organiza tu negocio, a tu manera.</p>
+      </header>
+      <div class="tabs" role="tablist" aria-label="Modo de conexión">
+        <button id="local-tab" role="tab" aria-selected="true" aria-controls="local-panel">
+          Probar en este ordenador</button
+        ><button id="remote-tab" role="tab" aria-selected="false" aria-controls="remote-panel">
+          Tengo un servidor
+        </button>
+      </div>
+      <section id="local-panel" role="tabpanel" aria-labelledby="local-tab">
+        <h2>Tu propio Nexo, aquí</h2>
+        <p>
+          Prepararemos el servidor y guardaremos los datos en Docker, en este ordenador. Puedes
+          empezar vacío o cargar ejemplos al entrar.
+        </p>
+        <div class="status" role="status">
+          <span id="led" class="led"></span><span id="status">Comprobando Docker…</span>
+        </div>
+        <div id="docker-help" hidden>
+          <h3>Primero, Docker Desktop</h3>
+          <button id="docker-download" type="button">Descargar Docker Desktop</button>
+          <ol>
+            <li>
+              Instala Docker Desktop desde <strong>docker.com/products/docker-desktop</strong>.
+            </li>
+            <li>
+              Ábrelo y espera a que termine de arrancar. En Windows, elige contenedores Linux.
+            </li>
+            <li>Vuelve aquí y pulsa «Comprobar».</li>
+          </ol>
+          <p>
+            La primera descarga requiere Internet y varios GB libres. Docker puede pedir permisos o
+            reiniciar Windows. Revisa sus condiciones de licencia.
+          </p>
+        </div>
+        <form id="install">
+          <div id="account">
+            <label for="password">Elige tu contraseña para Nexo</label
+            ><input
+              id="password"
+              type="password"
+              minlength="8"
+              maxlength="128"
+              autocomplete="new-password"
+              placeholder="Al menos 8 caracteres"
+            /><label for="repeat">Repite la contraseña</label
+            ><input id="repeat" type="password" autocomplete="new-password" />
+            <p class="hint">
+              Tu usuario será <strong>developer</strong>. La contraseña no se guarda en archivos ni
+              en registros.
+            </p>
+          </div>
+          <div class="actions">
+            <button id="start" type="submit" disabled>Preparar mi CRM</button
+            ><button id="open" type="button" hidden>Abrir CRM</button
+            ><button id="stop" type="button" class="secondary" hidden>Detener servidor</button
+            ><button id="check" type="button" class="secondary">Comprobar</button>
+          </div>
+        </form>
+        <p id="address" class="hint"></p>
+        <p class="hint">
+          Detener conserva los datos. Cerrar esta ventana no detiene el servidor. Esta prueba solo
+          es accesible desde este ordenador.
+        </p>
+      </section>
+      <section id="remote-panel" role="tabpanel" aria-labelledby="remote-tab" hidden>
+        <h2>Conectar con tu equipo</h2>
+        <p>Introduce la dirección que te haya facilitado quien administra tu servidor.</p>
+        <form id="connect">
+          <label for="server">Dirección del servidor</label
+          ><input id="server" type="url" placeholder="https://crm.example.com" required /><label
+            class="checkbox"
+            ><input id="http" type="checkbox" /> Permitir HTTP en mi red local (sin cifrado)</label
+          ><button type="submit">Conectar</button>
+        </form>
+      </section>
+      <section id="updates-panel" aria-labelledby="updates-title">
+        <h2 id="updates-title">Actualizaciones</h2>
+        <p id="versions">Consultando las versiones instaladas…</p>
+        <p id="update-message" role="status"></p>
+        <div class="actions">
+          <button id="update-check" type="button" class="secondary">Buscar actualizaciones</button
+          ><button id="update-install" type="button" hidden>Actualizar Nexo</button
+          ><button id="update-recover" type="button" hidden>Recuperar servidor</button>
+        </div>
+        <p class="hint">
+          Actualiza esta aplicación y el servidor instalado en este ordenador. Guarda los cambios y
+          cierra las ventanas del CRM antes de continuar. Haremos una copia de los datos y las
+          fotos; el servidor se pausará durante la instalación. Los servidores remotos se actualizan
+          en su propio equipo.
+        </p>
+      </section>
+      <p id="progress" role="status" hidden></p>
+      <p id="error" role="alert"></p>
+      <footer>
+        Para gestionar el servidor de nuevo: menú CRM → Conexión, servidor y actualizaciones.
+      </footer>
+    </main>
+    <script src="setup.js"></script>
+  </body>
+</html>

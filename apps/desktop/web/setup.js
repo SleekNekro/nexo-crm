@@ -1,38 +1,135 @@
-const el=id=>document.getElementById(id);
-let state=null,busy=false;
-function render(){
- el('status').textContent=state?.message||'Comprobando Docker…';
- el('led').classList.toggle('ready',!!state?.ready);
- el('docker-help').hidden=!state||state.docker;
- el('account').hidden=!!state?.hasAccount;
- el('start').textContent=state?.hasAccount?'Iniciar servidor':'Preparar mi CRM';
- el('start').hidden=!!state?.ready;
- el('start').disabled=busy||!state?.docker;
- el('stop').hidden=!state?.running;
- el('open').hidden=!state?.ready;
- el('address').textContent=state?.url?`Dirección local: ${state.url}`:'';
- document.querySelectorAll('button,input').forEach(x=>{if(x.id!=='start')x.disabled=busy;});
+const el = (id) => document.getElementById(id);
+let state = null,
+  busy = false,
+  updates = null;
+function render() {
+  el('status').textContent = state?.message || 'Comprobando Docker…';
+  el('led').classList.toggle('ready', !!state?.ready);
+  el('docker-help').hidden = !state || state.docker;
+  el('account').hidden = !!state?.hasAccount;
+  el('start').textContent = state?.hasAccount ? 'Iniciar servidor' : 'Preparar mi CRM';
+  el('start').hidden = !!state?.ready;
+  el('start').disabled = busy || !state?.docker;
+  el('stop').hidden = !state?.running;
+  el('open').hidden = !state?.ready;
+  el('address').textContent = state?.url ? `Dirección local: ${state.url}` : '';
+  el('update-install').hidden =
+    !(updates?.next || updates?.server?.available) || !!updates?.server?.recovery;
+  el('update-recover').hidden = !updates?.server?.recovery;
+  el('versions').textContent = updates
+    ? `Aplicación: ${updates.client} · Servidor local: ${updates.server.current}`
+    : 'Consultando las versiones instaladas…';
+  el('start').hidden = !!state?.ready || !!updates?.server?.recovery;
+  document.querySelectorAll('button,input').forEach((x) => {
+    if (x.id !== 'start') x.disabled = busy;
+  });
 }
-window.receiveProgress=message=>{el('progress').hidden=false;el('progress').textContent=message;};
-async function perform(action,extra={}){
- if(busy)return; busy=true;el('error').textContent='';render();
- receiveProgress(action==='status'?'Comprobando el servidor…':action==='stop'?'Deteniendo sin borrar tus datos…':'Preparando…');
- try{
-  const result=await window.__TAURI_INTERNALS__.invoke('setup_action',{action,password:null,url:null,allowLocalHttp:null,...extra});
-  if(!result.opened)state=result;
- }catch(error){el('error').textContent=String(error);}
- finally{busy=false;el('progress').hidden=true;render();}
+window.receiveProgress = (message) => {
+  el('progress').hidden = false;
+  el('progress').textContent = message;
+};
+async function perform(action, extra = {}) {
+  if (busy) return;
+  busy = true;
+  el('error').textContent = '';
+  render();
+  receiveProgress(
+    action === 'status'
+      ? 'Comprobando el servidor…'
+      : action === 'stop'
+        ? 'Deteniendo sin borrar tus datos…'
+        : 'Preparando…',
+  );
+  try {
+    const result = await window.__TAURI_INTERNALS__.invoke('setup_action', {
+      action,
+      password: null,
+      url: null,
+      allowLocalHttp: null,
+      ...extra,
+    });
+    if (action.startsWith('updates-')) {
+      if (action === 'updates-install') {
+        if (result.state) state = result.state;
+        el('update-message').textContent = 'Nexo está actualizado.';
+      } else {
+        updates = result;
+        el('update-message').textContent = result.server.recovery
+          ? 'Una actualización se interrumpió. Pulsa Recuperar servidor.'
+          : result.next
+            ? `Disponible: ${result.next}. Se actualizarán la aplicación y después su servidor local.`
+            : result.server.available
+              ? `Servidor ${result.server.target} disponible.`
+              : action === 'updates-check'
+                ? 'Ya tienes la última versión disponible.'
+                : '';
+      }
+    } else if (!result.opened) state = result;
+  } catch (error) {
+    el('error').textContent = String(error);
+  } finally {
+    busy = false;
+    el('progress').hidden = true;
+    render();
+  }
+  if (['updates-install', 'server-update', 'server-recover', 'start'].includes(action)) {
+    const error = el('error').textContent,
+      message = el('update-message').textContent;
+    await perform('updates-status');
+    if (error) el('error').textContent = error;
+    else if (!updates?.server?.available && !updates?.server?.recovery)
+      el('update-message').textContent = message || 'Nexo está actualizado.';
+  }
 }
-for(const mode of ['local','remote'])el(`${mode}-tab`).onclick=()=>{
- for(const value of ['local','remote']){el(`${value}-panel`).hidden=value!==mode;el(`${value}-tab`).setAttribute('aria-selected',String(value===mode));}
+for (const mode of ['local', 'remote'])
+  el(`${mode}-tab`).onclick = () => {
+    for (const value of ['local', 'remote']) {
+      el(`${value}-panel`).hidden = value !== mode;
+      el(`${value}-tab`).setAttribute('aria-selected', String(value === mode));
+    }
+  };
+el('install').onsubmit = (event) => {
+  event.preventDefault();
+  const password = el('password').value;
+  if (
+    !state?.hasAccount &&
+    (password.length < 8 || password.length > 128 || password !== el('repeat').value)
+  ) {
+    el('error').textContent = 'Escribe la misma contraseña de 8 a 128 caracteres en ambos campos.';
+    return;
+  }
+  el('password').value = '';
+  el('repeat').value = '';
+  perform('start', { password });
 };
-el('install').onsubmit=event=>{
- event.preventDefault();const password=el('password').value;
- if(!state?.hasAccount&&(password.length<8||password.length>128||password!==el('repeat').value)){el('error').textContent='Escribe la misma contraseña de 8 a 128 caracteres en ambos campos.';return;}
- el('password').value='';el('repeat').value='';perform('start',{password});
+el('connect').onsubmit = (event) => {
+  event.preventDefault();
+  perform('connect', { url: el('server').value.trim(), allowLocalHttp: el('http').checked });
 };
-el('connect').onsubmit=event=>{event.preventDefault();perform('connect',{url:el('server').value.trim(),allowLocalHttp:el('http').checked});};
-el('docker-download').onclick=()=>perform('docker-download');
-el('check').onclick=()=>perform('status');el('open').onclick=()=>perform('open-local');
-el('stop').onclick=()=>{if(confirm('¿Detener el servidor? Se cerrarán las conexiones a este Nexo. Tus datos se conservarán.'))perform('stop');};
-perform('status');
+el('docker-download').onclick = () => perform('docker-download');
+el('check').onclick = () => perform('status');
+el('open').onclick = () => perform('open-local');
+el('stop').onclick = () => {
+  if (
+    confirm(
+      '¿Detener el servidor? Se cerrarán las conexiones a este Nexo. Tus datos se conservarán.',
+    )
+  )
+    perform('stop');
+};
+el('update-check').onclick = () => perform('updates-check');
+el('update-install').onclick = () => {
+  if (
+    confirm(
+      '¿Actualizar Nexo? Guarda tus cambios y cierra las ventanas del CRM. Se hará una copia de seguridad y el servidor se pausará; la aplicación puede reiniciarse.',
+    )
+  )
+    perform('updates-install');
+};
+el('update-recover').onclick = () => perform('server-recover');
+async function initialize() {
+  await perform('status');
+  await perform('updates-status');
+  if (updates?.resume) await perform(updates.server.recovery ? 'server-recover' : 'server-update');
+}
+initialize();

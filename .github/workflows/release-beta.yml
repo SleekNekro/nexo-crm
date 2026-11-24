@@ -66,6 +66,7 @@ jobs:
           codesign --force --deep --sign - "$APP"
           codesign --verify --deep --strict "$APP"
           ditto -c -k --sequesterRsrc --keepParent "$APP" "dist/Nexo-CRM-macOS-${{ matrix.label }}.zip"
+          COPYFILE_DISABLE=1 tar -czf "dist/Nexo-CRM-macOS-${{ matrix.label }}.app.tar.gz" -C "$(dirname "$APP")" "NEXO CRM.app"
       - name: Build Windows
         if: runner.os == 'Windows'
         run: npx tauri build --target ${{ matrix.target }} --bundles nsis --config ../windows/tauri.windows.conf.json

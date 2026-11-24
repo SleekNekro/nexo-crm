@@ -45,6 +45,8 @@ Configuración: [asistente, campos, etapas, módulos y automatizaciones](docs/bu
 
 En una instalación nueva, entra con la cuenta inicial de desarrollador y pulsa **Preparar mi CRM**. Elige empezar vacío o cargar los ejemplos ficticios de las capturas.
 
+En escritorio, el código de beta.5 añade **Buscar actualizaciones → Actualizar Nexo** para actualizar la aplicación y su servidor local, con copia y recuperación. Necesita instalar beta.5 una primera vez. [Cómo funciona y límites](docs/desktop-updates.md).
+
 ## Un vistazo por dentro
 
 **Tratos y siguiente actividad, de un vistazo:**

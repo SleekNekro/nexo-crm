@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+mod client_update;
 mod local_server;
+mod server_update;
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::AtomicBool;
 static SETUP_BUSY: AtomicBool = AtomicBool::new(false);
@@ -44,12 +46,13 @@ fn allows_document_navigation(url: &Url, origin: &url::Origin) -> bool {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![setup_action])
         .setup(|app| {
             let menu = Menu::default(app.handle())?;
             menu.append(
                 &SubmenuBuilder::new(app.handle(), "CRM")
-                    .text("crm-setup", "Conexión y servidor local")
+                    .text("crm-setup", "Conexión, servidor y actualizaciones")
                     .text("crm-reload", "Recargar")
                     .text("crm-print", "Imprimir / Guardar PDF")
                     .build()?,
@@ -113,7 +116,7 @@ fn show_setup(app: &tauri::AppHandle) -> tauri::Result<()> {
         return Ok(());
     }
     WebviewWindowBuilder::new(app, "setup", WebviewUrl::App("index.html".into()))
-        .title("Nexo · Conexión y servidor local")
+        .title("Nexo · Servidor y actualizaciones")
         .inner_size(720.0, 780.0)
         .min_inner_size(380.0, 600.0)
         .on_navigation(|url| bundled_setup("setup", url))
@@ -152,7 +155,27 @@ async fn setup_action(
         let app = window.app_handle();
         let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
         let local = dir.join("local-server");
+        let progress = |message: &str| {
+            let _ = window.eval(&format!("receiveProgress({})", serde_json::to_string(message).unwrap()));
+        };
         let value = match action.as_str() {
+            "updates-status" => serde_json::json!({"client": env!("CARGO_PKG_VERSION"), "server": server_update::status(&local), "resume": std::fs::read_to_string(dir.join("update-server-after-restart")).ok().as_deref() == Some(env!("CARGO_PKG_VERSION"))}),
+            "updates-check" => tauri::async_runtime::block_on(client_update::check(app, &local))?,
+            "updates-install" => {
+                if app.webview_windows().keys().any(|label| label != "setup") {
+                    return Err("Guarda tus cambios y cierra las ventanas del CRM antes de actualizar. El asistente permanecerá abierto.".into());
+                }
+                tauri::async_runtime::block_on(client_update::install(app, &dir, &local, &progress))?
+            }
+            "server-update" | "server-recover" => {
+                if app.webview_windows().keys().any(|label| label != "setup") {
+                    return Err("Guarda tus cambios y cierra las ventanas del CRM antes de actualizar. El asistente permanecerá abierto.".into());
+                }
+                let state = if action == "server-recover" {server_update::recover(&local, &progress)?} else {server_update::update(&local, &progress)?};
+                let _ = std::fs::remove_file(dir.join("update-server-after-restart"));
+                serde_json::to_value(state).unwrap()
+            }
+
             "docker-download" => {
                 #[cfg(target_os = "macos")]
                 let result = std::process::Command::new("/usr/bin/open")

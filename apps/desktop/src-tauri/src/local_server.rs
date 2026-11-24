@@ -10,7 +10,7 @@ use std::{
     thread,
     time::{Duration, Instant},
 };
-const COMPOSE: &str = include_str!("../../../server/compose.yaml");
+pub(crate) const COMPOSE: &str = include_str!("../../../server/compose.yaml");
 const SQL: &str = include_str!("../../../server/provision.sql.template");
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -76,7 +76,7 @@ fn capture(mut pipe: impl Read) -> Vec<u8> {
     }
     result
 }
-fn run(
+pub(crate) fn run(
     args: &[&str],
     cwd: Option<&Path>,
     input: Option<&str>,
@@ -155,7 +155,21 @@ fn run(
         Err(failure())
     }
 }
-fn compose(dir: &Path, args: &[&str], input: Option<&str>, seconds: u64) -> Result<String, String> {
+pub(crate) fn compose(
+    dir: &Path,
+    args: &[&str],
+    input: Option<&str>,
+    seconds: u64,
+) -> Result<String, String> {
+    compose_file(dir, "compose.yaml", args, input, seconds)
+}
+pub(crate) fn compose_file(
+    dir: &Path,
+    file: &str,
+    args: &[&str],
+    input: Option<&str>,
+    seconds: u64,
+) -> Result<String, String> {
     let values = env(dir)?;
     let project = values.get("COMPOSE_PROJECT_NAME").ok_or_else(failure)?;
     let mut all = vec![
@@ -165,7 +179,7 @@ fn compose(dir: &Path, args: &[&str], input: Option<&str>, seconds: u64) -> Resu
         "--env-file",
         ".env",
         "-f",
-        "compose.yaml",
+        file,
     ];
     all.extend_from_slice(args);
     run(&all, Some(dir), input, seconds)
@@ -209,7 +223,7 @@ fn parse_env(text: &str) -> Result<BTreeMap<String, String>, String> {
     }
     Ok(values)
 }
-fn env(dir: &Path) -> Result<BTreeMap<String, String>, String> {
+pub(crate) fn env(dir: &Path) -> Result<BTreeMap<String, String>, String> {
     parse_env(&fs::read_to_string(dir.join(".env")).map_err(|_| failure())?)
 }
 fn available_ports() -> Result<(u16, u16), String> {
@@ -223,7 +237,7 @@ fn available_ports() -> Result<(u16, u16), String> {
     }
     Err("Los puertos locales de Nexo están ocupados. Cierra otra instalación de prueba e inténtalo de nuevo.".into())
 }
-fn prepare(dir: &Path) -> Result<(), String> {
+pub(crate) fn prepare(dir: &Path) -> Result<(), String> {
     fs::create_dir_all(dir).map_err(|_| failure())?;
     if !dir.join(".env").exists() {
         let (port, admin) = available_ports()?;
@@ -257,13 +271,13 @@ fn prepare(dir: &Path) -> Result<(), String> {
     }
     Ok(())
 }
-fn ready(dir: &Path) -> bool {
-    compose(dir,&["exec","-T","app","node","-e","fetch('http://127.0.0.1:3000/api/auth',{signal:AbortSignal.timeout(4000)}).then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"],None,10).is_ok()
+pub(crate) fn ready(dir: &Path) -> bool {
+    compose(dir,&["exec","-T","app","node","-e","fetch('http://127.0.0.1:3000/api/auth',{signal:AbortSignal.timeout(4000)}).then(async r=>process.exit(r.status===200&&(await r.json()).preview===false?0:1)).catch(()=>process.exit(1))"],None,10).is_ok()
 }
 fn local_endpoint(endpoint: &str) -> bool {
     endpoint.starts_with("unix://") || endpoint.starts_with("npipe://")
 }
-fn docker_ready() -> bool {
+pub(crate) fn docker_ready() -> bool {
     if std::env::var("DOCKER_HOST")
         .map(|v| !v.is_empty() && !local_endpoint(&v))
         .unwrap_or(false)
@@ -323,7 +337,7 @@ pub fn status(dir: &Path) -> Status {
         message: message.into(),
     }
 }
-fn operation_lock(dir: &Path) -> Result<fs::File, String> {
+pub(crate) fn operation_lock(dir: &Path) -> Result<fs::File, String> {
     fs::create_dir_all(dir).map_err(|_| failure())?;
     let file = fs::OpenOptions::new()
         .read(true)
@@ -342,6 +356,12 @@ fn valid_initial_password(password: &str) -> bool {
 }
 pub fn start(dir: &Path, password: &str, progress: impl Fn(&str)) -> Result<Status, String> {
     let _operation = operation_lock(dir)?;
+    if dir.join("update-pending").exists() {
+        return Err(
+            "Hay una actualización interrumpida. Pulsa Recuperar servidor antes de iniciarlo."
+                .into(),
+        );
+    }
     if !status(dir).docker {
         return Err("Abre Docker Desktop y espera a que termine de arrancar.".into());
     }
